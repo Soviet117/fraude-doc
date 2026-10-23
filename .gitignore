@@ -1,0 +1,47 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.python-version.lock
+
+# --- Herramientas ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# --- Entorno local ---
+.env
+.env.*
+!.env.example
+.cache/
+
+# --- Datos y artefactos (nunca versionar) ---
+data/*
+!data/README.md
+artifacts/
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.npy
+*.npz
+*.lmdb
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+notebooks/**/*.ipynb
+
+# --- Streamlit ---
+.streamlit/secrets.toml
+
+# --- SO / editores ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

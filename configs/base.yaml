@@ -1,0 +1,15 @@
+project:
+  name: fraude-doc
+  seed: 42
+
+paths:
+  data: data
+  artifacts: artifacts
+  registry: data/registry
+
+logging:
+  level: INFO
+
+pipeline:
+  # Ruta rápida siempre activa; la ruta profunda solo en zona gris (ver plan §7.3).
+  deep_path_enabled: true

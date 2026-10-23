@@ -26,8 +26,9 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-install-project --no-dev --extra ml
 
-# Código de la aplicación.
+# Código de la aplicación. Incluye el grupo dev para que `make test` y
+# `make lint` funcionen dentro del contenedor (F0).
 COPY . .
-RUN uv sync --frozen --no-dev --extra ml
+RUN uv sync --frozen --extra ml
 
 CMD ["bash"]

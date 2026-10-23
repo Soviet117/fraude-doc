@@ -2,7 +2,7 @@
 
 Prototipo de investigación aplicada que analiza documentos académicos (DNI, certificados de estudios, partidas, fichas de matrícula, actas, certificados de módulo y títulos de Auxiliar Técnico) combinando **visión por computadora** y **procesamiento de lenguaje natural**, y devuelve un **nivel de riesgo de autenticidad con evidencias explicables**.
 
-> Estado: **fase F0** — scaffold operativo (Docker, contrato de datos, ingesta por hash y demo mínima). El pipeline de análisis se implementa en las fases F2–F7.
+> Estado: **fase F1** — F0 cerrado en la laptop del equipo (Docker, contrato de datos, ingesta por hash, demo y CI). En curso: guía de anotación T1–T8 y solicitud formal de documentos al CETPRO. El pipeline de análisis se implementa en las fases F2–F7.
 
 ## Documentación
 

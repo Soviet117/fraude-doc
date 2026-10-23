@@ -39,13 +39,16 @@ Si hay conflicto entre una instrucción suelta y el plan, **gana el plan**, salv
 
 ## 3. Estado actual del repositorio
 
-**Fase F0 en curso.** Ya existe el scaffold:
+**Fase F0 cerrada en la laptop del equipo; F1 en curso.** Ya existe el scaffold:
 
 - `pyproject.toml` + `uv.lock` (Python 3.13, deps core y extra `ml`).
 - `Dockerfile`, `compose.yaml`, `Makefile`, `.pre-commit-config.yaml`, CI en `.github/workflows/ci.yml`.
 - `src/fraude/core/schemas.py` con el contrato `Observation`.
 - `src/fraude/ingest/hashing.py` y `src/fraude/pipeline/run.py` (ingesta + hash).
 - `apps/demo/app.py` (Streamlit mínimo) y tests en `tests/` (9 pasando).
+- `docs/guia_anotacion.md` (taxonomía T1–T8 v1.0) y `docs/solicitud_cetpro.md` (plantilla F1).
+
+La imagen Docker incluye el grupo `dev`, por lo que `make test` y `make lint` funcionan dentro del contenedor. **Pendiente de F0:** verificar la misma imagen en la laptop del compañero y en el laboratorio (SSH + `nvidia-smi`).
 
 **Aún no existe:** preproceso, forense, OCR, modelos, dataset, reglas, fusión ni evaluación. No asumas que están implementados: verifica antes de ejecutar.
 

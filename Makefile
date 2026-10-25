@@ -4,7 +4,7 @@ CONFIG ?= configs/base.yaml
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell gpu demo test lint fmt lock build clean
+.PHONY: help setup up down shell gpu demo test lint fmt lock synth build clean
 
 help: ## Muestra los comandos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -43,6 +43,9 @@ fmt: ## Formatea el código
 
 lock: ## Regenera uv.lock (ejecutar en el host)
 	uv lock
+
+synth: ## Genera el dataset sintético v1 en el host (ARGS="--count 42")
+	uv run python -m fraude.synth.build $(ARGS)
 
 build: ## Reconstruye la imagen
 	$(COMPOSE) build

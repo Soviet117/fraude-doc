@@ -54,6 +54,8 @@ class DocumentRecord:
     semantic_flags: tuple[str, ...] = ()
     capture_type: str = "pdf_render"
     seed: int = 42
+    augmentations: tuple[str, ...] = ()
+    origin_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convierte el registro a un diccionario serializable en JSON."""

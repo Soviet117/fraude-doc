@@ -21,6 +21,7 @@ from fraude.synth.dataset import ATTACK_TYPES, DocumentRecord
 
 SPLITS = ("train", "val", "calibration", "test", "unseen_attack")
 RATIO_SPLITS = ("train", "val", "calibration", "test")
+EVAL_SPLITS = ("test", "val", "calibration")
 DEFAULT_RATIOS: dict[str, float] = {
     "train": 0.70,
     "val": 0.15,
@@ -92,26 +93,69 @@ def _assign_groups(
     seed: int,
 ) -> dict[str, str]:
     rng = random.Random(seed)
-    shuffled = list(available)
-    rng.shuffle(shuffled)
-    shuffled.sort(key=lambda source_id: (len(groups[source_id]), source_id))
-
+    attack_families = {
+        source_id: {record.primary_attack for record in group if record.primary_attack is not None}
+        for source_id, group in groups.items()
+    }
+    remaining = set(available)
     assignment: dict[str, str] = {}
+
+    # Primero cubre en train todas las familias de ataque posibles, dejando al
+    # menos un grupo con ataque para cada partición de evaluación.
+    uncovered = set().union(*(attack_families[source_id] for source_id in available))
+    while uncovered:
+        attack_groups = [source_id for source_id in remaining if attack_families[source_id]]
+        if len(attack_groups) <= len(EVAL_SPLITS):
+            break
+        candidates = [
+            source_id for source_id in attack_groups if attack_families[source_id] & uncovered
+        ]
+        if not candidates:
+            break
+        rng.shuffle(candidates)
+        candidates.sort(
+            key=lambda source_id: (
+                -len(attack_families[source_id] & uncovered),
+                -len(groups[source_id]),
+                source_id,
+            )
+        )
+        chosen = candidates[0]
+        assignment[chosen] = "train"
+        remaining.remove(chosen)
+        uncovered -= attack_families[chosen]
+
+    # Reserva un grupo con ataque para test, val y calibración. Así las
+    # particiones de evaluación no quedan formadas solo por auténticos.
+    eval_covered: set[str] = set()
+    for split in EVAL_SPLITS:
+        if not remaining:
+            break
+        attack_groups = [source_id for source_id in remaining if attack_families[source_id]]
+        pool = attack_groups or list(remaining)
+        rng.shuffle(pool)
+        pool.sort(
+            key=lambda source_id: (
+                -len(attack_families[source_id] - eval_covered),
+                -len(attack_families[source_id]),
+                -len(groups[source_id]),
+                source_id,
+            )
+        )
+        chosen = pool[0]
+        assignment[chosen] = split
+        remaining.remove(chosen)
+        eval_covered |= attack_families[chosen]
+
+    # El resto se asigna a la partición con mayor déficit respecto a su target,
+    # completando sobre todo train.
     current: dict[str, int] = {split: 0 for split in RATIO_SPLITS}
+    for source_id, split in assignment.items():
+        current[split] += len(groups[source_id])
     total = sum(len(groups[source_id]) for source_id in available)
     targets = {split: max(1.0, total * ratios[split]) for split in RATIO_SPLITS}
 
-    # Reserva una persona por partición para que ninguna quede vacía.
-    for split in ("calibration", "test", "val", "train"):
-        if not shuffled:
-            break
-        source_id = shuffled.pop(0)
-        assignment[source_id] = split
-        current[split] += len(groups[source_id])
-
-    # El resto se asigna a la partición con mayor déficit respecto a su target.
-    shuffled.sort(key=lambda source_id: (-len(groups[source_id]), source_id))
-    for source_id in shuffled:
+    for source_id in sorted(remaining, key=lambda item: (-len(groups[item]), item)):
         split = max(
             RATIO_SPLITS,
             key=lambda candidate: (

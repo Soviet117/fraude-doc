@@ -96,6 +96,19 @@ def test_holdout_attack_stays_out_of_training(
     verify_holdout(labelled, "T5")
 
 
+def test_eval_splits_include_tampered_samples(
+    dataset: tuple[Path, list[DocumentRecord], list[DocumentRecord]],
+) -> None:
+    _, _, records = dataset
+    labelled = assign_splits(records, seed=42, holdout_attack="T5")
+
+    for split in ("val", "calibration", "test"):
+        assert any(
+            record.primary_attack is not None for record in labelled if record.split == split
+        ), split
+    assert any(record.primary_attack is not None for record in labelled if record.split == "train")
+
+
 def test_holdout_can_be_disabled(
     dataset: tuple[Path, list[DocumentRecord], list[DocumentRecord]],
 ) -> None:

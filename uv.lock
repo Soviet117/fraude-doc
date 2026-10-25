@@ -719,7 +719,9 @@ dependencies = [
     { name = "pillow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pypdfium2" },
     { name = "pyyaml" },
+    { name = "reportlab" },
     { name = "structlog" },
 ]
 
@@ -765,9 +767,11 @@ requires-dist = [
     { name = "pillow", specifier = ">=11,<13" },
     { name = "pydantic", specifier = ">=2.9,<3" },
     { name = "pydantic-settings", specifier = ">=2.5,<3" },
+    { name = "pypdfium2", specifier = ">=5,<6" },
     { name = "python-doctr", marker = "extra == 'ml'", specifier = ">=1.1,<2" },
     { name = "pyyaml", specifier = ">=6.0,<7" },
     { name = "rapidfuzz", marker = "extra == 'ml'", specifier = ">=3.9,<4" },
+    { name = "reportlab", specifier = ">=4.2,<5" },
     { name = "reportlab", marker = "extra == 'ml'", specifier = ">=4.2,<5" },
     { name = "scikit-image", marker = "extra == 'ml'", specifier = ">=0.24,<1" },
     { name = "scikit-learn", marker = "extra == 'ml'", specifier = ">=1.5,<2" },

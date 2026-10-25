@@ -15,7 +15,9 @@ dependencies = [
     "pillow>=11,<13",
     "pydantic>=2.9,<3",
     "pydantic-settings>=2.5,<3",
+    "pypdfium2>=5,<6",
     "pyyaml>=6.0,<7",
+    "reportlab>=4.2,<5",
     "structlog>=24.4,<26",
 ]
 

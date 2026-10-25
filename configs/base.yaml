@@ -13,3 +13,12 @@ logging:
 pipeline:
   # Ruta rápida siempre activa; la ruta profunda solo en zona gris (ver plan §7.3).
   deep_path_enabled: true
+
+quality:
+  # Umbrales de la puerta de calidad (F2, E2-1). Ajustar con la muestra real.
+  min_side_px: 1000
+  blur_threshold: 100.0
+  max_skew_deg: 2.0
+  min_contrast: 20.0
+  overexposed_mean: 252.0
+  underexposed_mean: 30.0

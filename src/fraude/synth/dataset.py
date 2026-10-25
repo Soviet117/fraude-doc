@@ -56,6 +56,7 @@ class DocumentRecord:
     seed: int = 42
     augmentations: tuple[str, ...] = ()
     origin_id: str | None = None
+    split: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convierte el registro a un diccionario serializable en JSON."""

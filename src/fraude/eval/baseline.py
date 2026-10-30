@@ -209,10 +209,12 @@ def run_baseline(
         "dataset": {
             "manifest": str(manifest_path),
             "registry": str(registry_path),
-            "data_kind": "synthetic_v1",
+            "data_kind": "synthetic_v1" if "synthetic" in manifest_path.parts else "unspecified",
             "fields_source": "manifest_oracle",
             "doctype_source": "manifest_oracle",
-            "registry_source": "synthetic_mirror",
+            "registry_source": "synthetic_mirror"
+            if "synthetic" in registry_path.name
+            else "external",
             "n_registry_entries": len(registry),
             "split_sizes": {
                 "val": len(val_results),

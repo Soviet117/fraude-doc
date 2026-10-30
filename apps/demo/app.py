@@ -1,7 +1,8 @@
 """Demo Streamlit — capa de presentación del prototipo.
 
-Fase F0: subida de documento, identificación por hash y visualización del
-contrato `Observation`. Las etapas de análisis se conectan en fases posteriores.
+Fase F3: subida de documento, identificación por hash, calidad, forense clásico,
+OCR opcional, extracción, reglas y cruce con registro. La fusión calibrada y la
+explicación llegan en F6-F7.
 """
 
 from __future__ import annotations
@@ -18,11 +19,23 @@ RISK_STYLE: dict[str, tuple[str, str]] = {
 }
 
 PHASES = [
-    {"Fase": "F0", "Entregable": "Base operativa y contrato de datos", "Estado": "En curso"},
-    {"Fase": "F1", "Entregable": "Datos, taxonomía y anotación", "Estado": "Pendiente"},
-    {"Fase": "F2", "Entregable": "Preproceso y dataset sintético", "Estado": "Pendiente"},
-    {"Fase": "F3", "Entregable": "Línea base sin deep learning", "Estado": "Pendiente"},
-    {"Fase": "F4", "Entregable": "Modelo visual de documento", "Estado": "Pendiente"},
+    {"Fase": "F0", "Entregable": "Base operativa y contrato de datos", "Estado": "Cerrado"},
+    {
+        "Fase": "F1",
+        "Entregable": "Datos, taxonomía y anotación",
+        "Estado": "Parcial: faltan documentos reales",
+    },
+    {"Fase": "F2", "Entregable": "Preproceso y dataset sintético", "Estado": "Cerrado (sintético)"},
+    {
+        "Fase": "F3",
+        "Entregable": "Línea base sin deep learning",
+        "Estado": "Cerrado provisional",
+    },
+    {
+        "Fase": "F4",
+        "Entregable": "Modelo visual de documento",
+        "Estado": "Bloqueado: requiere documentos reales",
+    },
     {"Fase": "F5", "Entregable": "Localización y explicabilidad", "Estado": "Pendiente"},
     {"Fase": "F6", "Entregable": "Rama semántica y NLP", "Estado": "Pendiente"},
     {"Fase": "F7", "Entregable": "Fusión y calibración", "Estado": "Pendiente"},
@@ -52,9 +65,9 @@ st.caption("CETPRO San Agustín · Nueva Cajamarca · Prototipo de investigació
 with st.sidebar:
     st.subheader("Estado del prototipo")
     st.info(
-        "**Fase F0**\n\n"
-        "Ingesta e identificación por hash. El análisis forense, OCR y la fusión "
-        "se incorporan en las fases F2-F7."
+        "**Fase F3 (provisional)**\n\n"
+        "Calidad, forense clásico, OCR opcional, extracción, reglas y registro. "
+        "La fusión calibrada y la explicación llegan en F6-F7."
     )
     st.markdown("**Principios del sistema**")
     st.markdown(
@@ -106,17 +119,52 @@ with analysis_tab:
             )
         col_hash.metric("Identificador", observation.document_id[:23] + "…")
         col_size.metric("Tamaño", human_size(observation.source.bytes))
-        col_time.metric("Tiempo", "—")
+        total_ms = sum(observation.timings.values())
+        col_time.metric("Tiempo", f"{total_ms} ms" if total_ms else "—")
 
-        st.warning(
-            "El pipeline de análisis aún no está implementado. Este resultado solo "
-            "confirma la ingesta y el contrato de datos (fase F0).",
-            icon="⚠️",
-        )
+        if observation.source.format == "pdf":
+            st.info(
+                "PDF: por ahora solo se calcula el hash. El render de páginas se "
+                "incorpora más adelante.",
+                icon="📄",
+            )
+        elif observation.ocr.engine == "unavailable":
+            st.info(
+                "docTR no está instalado en este entorno. Se ejecutaron calidad y "
+                "forense; los campos y las reglas semánticas quedan pendientes.",
+                icon="📌",
+            )
+        elif observation.ocr.engine == "not_run":
+            st.warning(
+                "La imagen no es legible o no es analizable; se recomienda recapturar.",
+                icon="⚠️",
+            )
+        else:
+            st.caption(
+                f"OCR: `{observation.ocr.engine}` · "
+                f"{observation.ocr.n_words} palabras · "
+                f"confianza media: {observation.ocr.mean_conf}"
+            )
 
         st.subheader("3. Evidencias")
+        if observation.rules:
+            st.dataframe(
+                [
+                    {
+                        "Código": finding.code,
+                        "Severidad": finding.severity.value,
+                        "Mensaje": finding.message,
+                    }
+                    for finding in observation.rules
+                ],
+                hide_index=True,
+                use_container_width=True,
+            )
+        else:
+            st.caption("Sin hallazgos de reglas para esta muestra.")
         st.caption(
-            "Se mostrarán aquí, ordenadas por contribución, cuando la fusión esté implementada."
+            "La fusión calibrada (F7) convertirá estos hallazgos en un nivel de "
+            "riesgo explicable; por ahora el riesgo es indeterminado."
         )
 
         with st.expander("Contrato `Observation` (JSON)", expanded=False):

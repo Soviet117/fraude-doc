@@ -31,6 +31,15 @@ def _copy_move_image() -> Image.Image:
     return Image.fromarray(array)
 
 
+def _colored_header_image() -> Image.Image:
+    image = Image.new("RGB", (300, 400), "white")
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 300, 70), fill=(31, 56, 100))
+    draw.text((20, 24), "CETPRO SAN AGUSTIN", fill="white")
+    draw.text((20, 100), "Documento sintetico de prueba", fill="black")
+    return image
+
+
 def test_analyze_forensics_returns_bounded_signals(tmp_path: Path) -> None:
     path = tmp_path / "documento.png"
     _document_image().save(path)
@@ -129,3 +138,12 @@ def test_copy_move_ignores_repeated_black_text(tmp_path: Path) -> None:
 
     assert report.localization.applicable is False
     assert report.localization.details["reason"] == "few_colored_blocks"
+
+
+def test_copy_move_ignores_colored_header_edges(tmp_path: Path) -> None:
+    path = tmp_path / "encabezado.png"
+    _colored_header_image().save(path)
+
+    report = analyze_forensics(path)
+
+    assert report.localization.score is None or report.localization.score <= 0.2

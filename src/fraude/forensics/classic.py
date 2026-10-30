@@ -24,6 +24,7 @@ _COPY_MIN_STD = 12.0
 _COPY_MIN_SATURATION = 8.0
 _COPY_CORRELATION = 0.99
 _COPY_MIN_DISTANCE = 32
+_COPY_MIN_AXIS_OFFSET = 8
 _EDITING_SOFTWARE = (
     "photoshop",
     "gimp",
@@ -201,6 +202,12 @@ def copy_move_signal(image: Image.Image, *, out_dir: Path | None = None) -> Sign
     Solo considera bloques con color (sellos, firmas, fotografías). Así se
     evita marcar texto negro repetido como copy-move; es una limitación
     conocida para documentos estrictamente en escala de grises.
+
+    También descarta duplicados alineados en un solo eje. Los encabezados y
+    barras de color de las plantillas producen bordes rectos que correlacionan
+    perfectamente entre sí; exigir desplazamiento horizontal y vertical reduce
+    esos falsos positivos. Es una limitación: un copy-move puramente horizontal
+    o vertical no se reportará.
     """
     rgb = _downscale_rgb(image, _COPY_MAX_SIDE)
     gray = np.asarray(Image.fromarray(rgb.astype(np.uint8)).convert("L"), dtype=np.float32)
@@ -244,6 +251,8 @@ def copy_move_signal(image: Image.Image, *, out_dir: Path | None = None) -> Sign
             dx = float(points[first, 0] - points[second, 0])
             dy = float(points[first, 1] - points[second, 1])
             if dx * dx + dy * dy < _COPY_MIN_DISTANCE * _COPY_MIN_DISTANCE:
+                continue
+            if abs(dx) < _COPY_MIN_AXIS_OFFSET or abs(dy) < _COPY_MIN_AXIS_OFFSET:
                 continue
             matched.add((first, second))
             for index in (first, second):

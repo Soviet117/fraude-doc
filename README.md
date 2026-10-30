@@ -2,7 +2,7 @@
 
 Prototipo de investigación aplicada que analiza documentos académicos (DNI, certificados de estudios, partidas, fichas de matrícula, actas, certificados de módulo y títulos de Auxiliar Técnico) combinando **visión por computadora** y **procesamiento de lenguaje natural**, y devuelve un **nivel de riesgo de autenticidad con evidencias explicables**.
 
-> Estado: **fase F1** — F0 cerrado en la laptop del equipo (Docker, contrato de datos, ingesta por hash, demo y CI). En curso: guía de anotación T1–T8 y solicitud formal de documentos al CETPRO. El pipeline de análisis se implementa en las fases F2–F7.
+> Estado: **fase F3 (línea base) cerrada de forma provisional** — F0–F2 cerrados (entorno, contrato `Observation`, ingesta, calidad, dataset sintético v1, ataques T1–T8 y particiones agrupadas). F3 integra forense clásico, OCR opcional, extracción, reglas y cruce con registro, con una tabla provisional sobre datos sintéticos. **F4 no se inicia** hasta contar con documentos reales del CETPRO y docTR instalado.
 
 ## Documentación
 
@@ -10,6 +10,9 @@ Prototipo de investigación aplicada que analiza documentos académicos (DNI, ce
 |---|---|
 | [`plan-sistema-fraude-documental.md`](plan-sistema-fraude-documental.md) | Plan completo: stack, arquitectura, pipeline, fases, backlog, evaluación y riesgos |
 | [`AGENTS.md`](AGENTS.md) | Contexto y reglas para agentes de IA que trabajen en el repo |
+| [`docs/guia_anotacion.md`](docs/guia_anotacion.md) | Taxonomía T1–T8 y criterios de anotación |
+| [`docs/solicitud_cetpro.md`](docs/solicitud_cetpro.md) | Plantilla de solicitud formal de documentos al CETPRO |
+| [`docs/f3_linea_base.md`](docs/f3_linea_base.md) | Tabla F3 provisional, umbrales, IC bootstrap y limitaciones |
 
 ## Resumen técnico
 
@@ -26,6 +29,21 @@ Prototipo de investigación aplicada que analiza documentos académicos (DNI, ce
 4. Ningún dato personal fuera del equipo.
 5. Ningún modelo sin calibración.
 
-## Arranque
+## Estado actual
 
-Ver §16 del plan. Primera sesión: repositorio + scaffold Docker + contrato `Observation` + Streamlit mínimo + CI, y en paralelo la solicitud de documentos al CETPRO.
+- **F0–F2 cerrados:** Docker, CI, contrato `Observation`, ingesta por hash, calidad, dataset sintético v1 (348 muestras), ataques T1–T8, aumentación y particiones agrupadas.
+- **F3 implementado:** forense clásico, adaptador docTR, extracción por tipo, motor de reglas, cruce con registro y pipeline integrado.
+- **F3 evaluado de forma provisional:** 149 tests pasando; tabla en [`docs/f3_linea_base.md`](docs/f3_linea_base.md) con `fields_source=manifest_oracle` porque docTR no está instalado en el host.
+- **Pendiente:** verificar la imagen en la PC del compañero y el laboratorio; instalar docTR/extra `ml`; obtener documentos reales y registro institucional para F4.
+
+## Arranque rápido
+
+```bash
+make setup   # crea .env con UID/GID
+make up      # levanta el contenedor de desarrollo
+make test    # pytest dentro del contenedor
+make demo    # Streamlit en localhost:8501
+```
+
+Sin Docker, para tests y lint: `uv sync && uv run pytest -q && uv run ruff check .`.
+La tabla F3 se regenera con los comandos de [`docs/f3_linea_base.md`](docs/f3_linea_base.md).

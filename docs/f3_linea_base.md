@@ -83,6 +83,11 @@ resultado del sistema.
 | test / elegido | 0.25 | 6 | 18 | 0 | 6 | 1.000 | 0.500 | 0.667 | 0.000 | 0.7315 | 0.7639 |
 | test / oráculo | 0.50 | 6 | 18 | 0 | 6 | 1.000 | 0.500 | 0.667 | 0.000 | 0.7315 | 0.7639 |
 
+Cuando un umbral no produce ninguna predicción positiva, precision y F1 se muestran como
+`0.000` por convención de la tabla; el JSON incluye flags `precision_defined` y
+`f1_defined` para distinguir ese caso de un valor realmente cero. Lo mismo aplica a
+recall/FPR en grupos sin positivos o sin negativos.
+
 Lectura de la tabla:
 
 - En **validación**, el umbral 0.50 no detecta T4 porque `CAMPOS_FALTANTES` pesa 0.25.

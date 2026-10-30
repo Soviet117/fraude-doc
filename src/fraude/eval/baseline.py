@@ -56,6 +56,9 @@ LIMITATIONS = (
     "variantes del mismo documento base y de sus ataques. Los IC bootstrap "
     "tratan las muestras como independientes y son optimistas; no sustituyen "
     "una validación con más personas.",
+    "El test v1 solo contiene T1 y T2; no hay recall para T3-T8 en esta tabla. "
+    "Validación solo contiene T4, así que el umbral elegido está optimizado "
+    "para ese ataque.",
     "T2 (inserción de sello) no modifica los campos ni deja señal en las reglas "
     "actuales; la línea base no lo detecta.",
     "T3 (copy-move de sello) queda subdetectado tras hacer conservador el "

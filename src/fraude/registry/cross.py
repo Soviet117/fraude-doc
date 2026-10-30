@@ -154,7 +154,13 @@ def _score(
     period_sim = _text_similarity(periodo, entry.periodo)
     if exact_dni:
         return min(1.0, 0.55 + 0.25 * name_sim + 0.15 * program_sim + 0.05 * period_sim)
-    return min(1.0, 0.55 * name_sim + 0.30 * program_sim + 0.15 * period_sim)
+    score = min(1.0, 0.55 * name_sim + 0.30 * program_sim + 0.15 * period_sim)
+    if name_sim >= 0.98:
+        # Partidas y otros documentos pueden no traer DNI, programa ni periodo.
+        # Un nombre completo exacto es evidencia suficiente para localizar a la
+        # persona; las diferencias de programa/periodo se reportan aparte.
+        score = max(score, 0.90)
+    return score
 
 
 def _diffs(

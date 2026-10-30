@@ -70,6 +70,18 @@ def test_name_order_and_accents_are_matched_without_dni() -> None:
     assert report.diffs == []
 
 
+def test_exact_name_without_dni_or_program_matches() -> None:
+    report = cross_registry(
+        {"nombre": "José Luis Quispe Mamani"},
+        ENTRIES,
+    )
+
+    assert report.matched is True
+    assert report.score is not None
+    assert report.score >= 0.86
+    assert report.diffs == []
+
+
 def test_exact_dni_with_wrong_program_reports_diff() -> None:
     report = cross_registry(
         {

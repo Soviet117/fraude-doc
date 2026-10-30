@@ -6,7 +6,13 @@ from datetime import date
 
 import pytest
 
-from fraude.core.schemas import ForensicsReport, QualityReport, Severity, SignalScore
+from fraude.core.schemas import (
+    ForensicsReport,
+    QualityReport,
+    RegistryReport,
+    Severity,
+    SignalScore,
+)
 from fraude.rules.engine import evaluate_rules
 
 TODAY = date(2026, 10, 25)
@@ -258,6 +264,73 @@ def test_copy_move_signal_is_reported_as_high() -> None:
 
     assert [finding.code for finding in findings] == ["COPY_MOVE"]
     assert findings[0].severity is Severity.HIGH
+
+
+def test_registry_match_without_diffs_has_no_finding() -> None:
+    findings = evaluate_rules(
+        CLEAN_FICHA,
+        "ficha_matricula",
+        today=TODAY,
+        registry=RegistryReport(matched=True, score=1.0, diffs=[]),
+    )
+
+    assert findings == []
+
+
+def test_registry_mismatch_is_reported_as_high() -> None:
+    findings = evaluate_rules(
+        CLEAN_FICHA,
+        "ficha_matricula",
+        today=TODAY,
+        registry=RegistryReport(matched=False, score=0.42, diffs=["sin coincidencia"]),
+    )
+
+    assert [finding.code for finding in findings] == ["REGISTRO_NO_COINCIDENTE"]
+    assert findings[0].severity is Severity.HIGH
+
+
+def test_registry_identity_diff_is_high() -> None:
+    findings = evaluate_rules(
+        CLEAN_FICHA,
+        "ficha_matricula",
+        today=TODAY,
+        registry=RegistryReport(
+            matched=True,
+            score=0.8,
+            diffs=["nombre: extraido='Otra Persona' registro='Quispe Mamani, José Luis'"],
+        ),
+    )
+
+    assert [finding.code for finding in findings] == ["REGISTRO_DIFERENCIA"]
+    assert findings[0].severity is Severity.HIGH
+    assert "Otra Persona" in findings[0].message
+
+
+def test_registry_academic_diff_is_medium() -> None:
+    findings = evaluate_rules(
+        CLEAN_FICHA,
+        "ficha_matricula",
+        today=TODAY,
+        registry=RegistryReport(
+            matched=True,
+            score=0.9,
+            diffs=["programa: extraido='Programa Falso' registro='Computación e Informática'"],
+        ),
+    )
+
+    assert [finding.code for finding in findings] == ["REGISTRO_DIFERENCIA"]
+    assert findings[0].severity is Severity.MEDIUM
+
+
+def test_registry_unavailable_does_not_add_finding() -> None:
+    findings = evaluate_rules(
+        CLEAN_FICHA,
+        "ficha_matricula",
+        today=TODAY,
+        registry=RegistryReport(matched=False, score=None, diffs=[]),
+    )
+
+    assert findings == []
 
 
 def test_unknown_document_type_is_reported() -> None:

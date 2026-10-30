@@ -14,6 +14,7 @@ from typing import Any
 from fraude.core.schemas import (
     ForensicsReport,
     QualityReport,
+    RegistryReport,
     RuleFinding,
     Severity,
 )
@@ -91,6 +92,7 @@ def evaluate_rules(
     today: date | None = None,
     quality: QualityReport | None = None,
     forensics: ForensicsReport | None = None,
+    registry: RegistryReport | None = None,
     ocr_mean_conf: float | None = None,
     ocr_words: int = 0,
 ) -> list[RuleFinding]:
@@ -116,6 +118,7 @@ def evaluate_rules(
     _check_quality(quality, findings)
     _check_ocr(ocr_mean_conf, ocr_words, findings)
     _check_forensics(forensics, findings)
+    _check_registry(registry, findings)
     return _sort_findings(findings)
 
 
@@ -399,6 +402,33 @@ def _check_forensics(
             Severity.HIGH,
             "Se detectaron regiones duplicadas compatibles con copy-move.",
         )
+
+
+def _check_registry(
+    registry: RegistryReport | None,
+    findings: list[RuleFinding],
+) -> None:
+    if registry is None or registry.score is None:
+        return
+    if not registry.matched:
+        _add(
+            findings,
+            "REGISTRO_NO_COINCIDENTE",
+            Severity.HIGH,
+            "La persona no coincide con el registro interno del CETPRO "
+            f"(mejor score={registry.score:.2f}).",
+        )
+        return
+    if not registry.diffs:
+        return
+    detail = "; ".join(registry.diffs[:4])
+    identity_diff = any(diff.startswith(("nombre:", "dni:")) for diff in registry.diffs)
+    _add(
+        findings,
+        "REGISTRO_DIFERENCIA",
+        Severity.HIGH if identity_diff else Severity.MEDIUM,
+        f"El documento difiere del registro interno: {detail}.",
+    )
 
 
 def _parse_date(value: str) -> date | None:

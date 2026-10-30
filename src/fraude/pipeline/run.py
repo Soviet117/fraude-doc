@@ -60,6 +60,7 @@ def analyze_bytes(
     observation = _build_observation(sha256_bytes(data), filename, len(data))
     suffix = Path(filename).suffix.lower()
     if suffix not in IMAGE_SUFFIXES:
+        observation.ocr = OcrReport(engine="not_run")
         return observation
 
     with tempfile.TemporaryDirectory(prefix="fraude-") as temp_dir:
@@ -102,6 +103,8 @@ def analyze_document(
             ocr_predictor=ocr_predictor,
             today=today,
         )
+    else:
+        observation.ocr = OcrReport(engine="not_run")
     return observation
 
 
@@ -118,6 +121,7 @@ def _apply_image_analysis(
 ) -> None:
     """Aplica calidad y etapas F3 a una imagen legible."""
     if not _apply_quality(observation, path, suffix):
+        observation.ocr = OcrReport(engine="not_run")
         return
 
     started = perf_counter()

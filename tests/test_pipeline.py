@@ -44,6 +44,7 @@ def test_analyze_bytes_builds_observation() -> None:
     assert observation.source.format == "pdf"
     assert observation.source.bytes == 3
     assert observation.quality.ok is True
+    assert observation.ocr.engine == "not_run"
     assert observation.ocr.n_words == 0
 
 
@@ -56,6 +57,16 @@ def test_analyze_document_matches_analyze_bytes(tmp_path) -> None:
 
     assert from_file.document_id == from_bytes.document_id
     assert from_file.source == from_bytes.source
+
+
+def test_unreadable_image_marks_ocr_not_run(tmp_path) -> None:
+    path = tmp_path / "roto.png"
+    path.write_bytes(b"abc")
+
+    observation = analyze_document(path)
+
+    assert observation.quality.ok is False
+    assert observation.ocr.engine == "not_run"
 
 
 def test_pipeline_runs_f3_with_injected_ocr(tmp_path, monkeypatch) -> None:

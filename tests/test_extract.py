@@ -189,3 +189,219 @@ def test_unknown_document_type_raises_on_direct_extraction() -> None:
 
     with pytest.raises(ValueError):
         extract_from_lines(["texto"], "no_existe")
+
+
+def test_detect_document_type_prefers_header_title() -> None:
+    certificado = """CERTIFICADO DE ESTUDIOS
+    APELLIDOS SYI NOMBRES PAREDES MAMANI, FERNANDO JOSÉ
+    DOCUMENTO NACIONAL DE IDENTIDAD 49346326
+    DNI 16785432"""
+    ficha = """FICHA DE MATRICULA
+    APELLIDOS Y NOMBRES HUAMÂN CASTILLO, LUCIA FERNANDA
+    En la Secretaría Académica se convalida con el certificado de estudios."""
+    modulo = """CERTIFICADO DE MODULO OCUPACIONAL
+    DOCUMENTO NACIONAL DE IDENTIDAD 77964873
+    según consta en el acta de evaluacion correspondiente."""
+    misspelled = """CERTIFIFICADO DE ESTUDIOS
+    DOCUMENTO NACIONAL DE IDENTIDAD 45141610"""
+    titulo = """REPUBLICA DEL PERU
+    TITULO
+    DE AUXILIAR TÉCNICO
+    DNI 74609924"""
+
+    assert detect_document_type(certificado) == "certificado_estudios"
+    assert detect_document_type(ficha) == "ficha_matricula"
+    assert detect_document_type(modulo) == "certificado_modulo"
+    assert detect_document_type(misspelled) == "certificado_estudios"
+    assert detect_document_type(titulo) == "titulo_auxiliar_tecnico"
+
+
+def test_extract_dni_ocr_labels() -> None:
+    text = """DOCUMENTO NACIONAL DE IDENTIDAD
+    N.o 61531833
+    PRIMERA APELLIDO/ SEGUNDOAPELLIDO
+    SÁNCHEZ SALAZAR
+    PRENOMBRES
+    ÉDGAR MARTIN
+    SEXO
+    MASCULINO
+    ESTADOCIVIL
+    SOLTERO(A)
+    FECHADEI NACIMIENTO
+    03/06/1999
+    DOMICILIO
+    Av. Circunvalacion 45, Soritor
+    FECHADEEMISION FECHADEV VENCIMIENTO HUELLA
+    15/01/2024 15/01/2032"""
+
+    fields = extract_from_text(text, "dni")
+
+    assert fields["numero"] == "61531833"
+    assert fields["apellidos"] == "SÁNCHEZ SALAZAR"
+    assert fields["nombres"] == "ÉDGAR MARTIN"
+    assert fields["fecha_nacimiento"] == "03/06/1999"
+    assert fields["estado_civil"] == "SOLTERO(A)"
+    assert fields["direccion"] == "Av. Circunvalacion 45, Soritor"
+    assert fields["fecha_emision"] == "15/01/2024"
+    assert fields["fecha_vencimiento"] == "15/01/2032"
+
+
+def test_extract_certificate_ocr_labels() -> None:
+    text = """CERTIFICADO DE ESTUDIOS
+    APELLIDOS SYI NOMBRES PAREDES MAMANI, FERNANDO JOSÉ
+    DOCUMENTO NACIONAL DE IDENTIDAD 49346326
+    FECHA DE NACIMIENTO 17/01/2000
+    INSTITUCION EDUCATIVA I.E. Andrés Avelino Cáceres
+    ANO DEI EGRESO 2022
+    PROMEDIO GENERAL: 14.6 - ORDEN DE MÉRITO: 20 de 34"""
+
+    fields = extract_from_text(text, "certificado_estudios")
+
+    assert fields["estudiante"] == "PAREDES MAMANI, FERNANDO JOSÉ"
+    assert fields["dni"] == "49346326"
+    assert fields["fecha_nacimiento"] == "17/01/2000"
+    assert fields["institucion"] == "I.E. Andrés Avelino Cáceres"
+    assert fields["anio_egreso"] == "2022"
+    assert fields["promedio"] == "14.6"
+
+
+def test_extract_acta_ocr_labels() -> None:
+    text = """ACTA DE EVALUACION
+    PROGRAMA DEI ESTUDIOS N.ODEI MATRICULADOS
+    Administracion de Empresas 20
+    MODULOOCUPACIONAL HORAI DEI INICIO
+    Contabilidad basica 20:00
+    DOCENTE AULA/TURNO
+    Téc. Pedro Saavedra Moreno Aula 160 I Tarde
+    PERIODO FECHAI DEE EVALUACION
+    2025-1 18/07/2026
+    1 ROJAS RUIZ, Rosa Milagros 71569494 13
+    7 GUEVARA VEGA, Miguel Angel 66709866 09 DESAPR."""
+
+    fields = extract_from_text(text, "acta_evaluacion")
+
+    assert fields["programa"] == "Administracion de Empresas"
+    assert fields["modulo"] == "Contabilidad basica"
+    assert fields["docente"] == "Téc. Pedro Saavedra Moreno"
+    assert fields["periodo"] == "2025-I"
+    assert fields["fecha_evaluacion"] == "18/07/2026"
+    assert fields["nota_0"] == "13"
+    assert fields["nota_6"] == "09"
+
+
+def test_extract_certificado_modulo_ocr_labels() -> None:
+    text = """CERTIFICADO DE MODULO OCUPACIONAL
+    APELLIDOS YI NOMBRES SANCHEZ ZAVALETA, ANA LUCIA
+    DOCUMENTO NACIONALI DE IDENTIDAD 77964873
+    PROGRAMA DE ESTUDIOS Mecánica Automotriz
+    MODULO OCUPACIONAL Mantenimiento de motores
+    PERIODO ACADÉMICO 2024-1
+    CARGA HORARIA 120 horas académicas
+    NOTA FINAL DEL MODULO: 16 CONDICION: APROBADO"""
+
+    fields = extract_from_text(text, "certificado_modulo")
+
+    assert fields["estudiante"] == "SANCHEZ ZAVALETA, ANA LUCIA"
+    assert fields["dni"] == "77964873"
+    assert fields["programa"] == "Mecánica Automotriz"
+    assert fields["modulo"] == "Mantenimiento de motores"
+    assert fields["periodo"] == "2024-I"
+    assert fields["horas"] == "120"
+    assert fields["nota"] == "16"
+
+
+def test_extract_titulo_student_and_program() -> None:
+    text = """TITULO
+    DE AUXILIAR TÉCNICO
+    ROSA MILAGROS BAUTISTA SANCHEZ
+    DNI 74609924
+    como
+    AUXILIAR TÉCNICO EN
+    COCINA
+    RESOLUCION DIRECTORALI N.° 252-2026-DG-CETPRO-SA REGISTRO N.O T-56498-2026"""
+
+    fields = extract_from_text(text, "titulo_auxiliar_tecnico")
+
+    assert fields["estudiante"] == "ROSA MILAGROS BAUTISTA SANCHEZ"
+    assert fields["dni"] == "74609924"
+    assert fields["programa"] == "COCINA"
+    assert fields["resolucion"] == "N.° 252-2026-DG-CETPRO-SA"
+
+
+def test_extract_ficha_columns_from_geometry() -> None:
+    def word(text: str, x: int, y: int) -> OcrWord:
+        return OcrWord(text, (x, y, max(8, len(text) * 6), 12), 0.99)
+
+    words = (
+        word("FICHA", 10, 10),
+        word("DE", 60, 10),
+        word("MATRICULA", 90, 10),
+        word("APELLIDOS", 10, 40),
+        word("Y", 90, 40),
+        word("NOMBRES", 110, 40),
+        word("HUAMÂN", 180, 40),
+        word("CASTILLO,", 250, 40),
+        word("LUCIA", 330, 40),
+        word("FERNANDA", 390, 40),
+        word("DNI", 10, 70),
+        word("48437194", 60, 70),
+        word("FECHA", 10, 100),
+        word("DEI", 70, 100),
+        word("NACIMIENTO", 110, 100),
+        word("05/09/2000", 220, 100),
+        word("MODALIDADI", 10, 130),
+        word("PRESENCIAL", 110, 130),
+        word("Periodo", 250, 130),
+        word("académico:", 320, 130),
+        word("2025-1", 430, 130),
+        word("PROGRAMAI", 10, 160),
+        word("DEE", 100, 160),
+        word("ESTUDIOS", 140, 160),
+        word("MODULOMATRICULADO", 400, 160),
+        word("Cocina", 10, 190),
+        word("Seguridad", 400, 190),
+        word("e", 500, 190),
+        word("higiene", 530, 190),
+        word("alimentaria", 600, 190),
+    )
+    page = OcrPage(words=words, width=1000, height=400)
+
+    result = extract_page(page)
+
+    assert result.document_type == "ficha_matricula"
+    assert result.fields["estudiante"] == "HUAMÂN CASTILLO, LUCIA FERNANDA"
+    assert result.fields["dni"] == "48437194"
+    assert result.fields["fecha_nacimiento"] == "05/09/2000"
+    assert result.fields["periodo"] == "2025-I"
+    assert result.fields["programa"] == "Cocina"
+    assert result.fields["modulo"] == "Seguridad e higiene alimentaria"
+
+
+def test_extract_ficha_keeps_labeled_columns_when_geometry_fails() -> None:
+    lines = (
+        "FICHA DE MATRICULA",
+        "Estudiante: Quispe Mamani, José Luis",
+        "DNI: 12345678",
+        "Periodo: 2025-I",
+        "Programa: Computación e Informática",
+        "Módulo: Ofimática y herramientas digitales",
+        "Turno: Mañana",
+        "Fecha de matrícula: 15/03/2025",
+    )
+    words = tuple(
+        OcrWord(text=text, bbox=(80, 40 + index * 40, 700, 20), confidence=0.95)
+        for index, text in enumerate(lines)
+    )
+    page = OcrPage(words=words, width=1200, height=1600)
+
+    result = extract_page(page)
+
+    assert result.document_type == "ficha_matricula"
+    assert result.fields["programa"] == "Computación e Informática"
+    assert result.fields["modulo"] == "Ofimática y herramientas digitales"
+
+
+def test_extract_period_normalization() -> None:
+    assert extract_from_text("Periodo: 2024-1", "ficha_matricula")["periodo"] == "2024-I"
+    assert extract_from_text("Periodo: 2025-11", "ficha_matricula")["periodo"] == "2025-II"
+    assert extract_from_text("Periodo: 2025-II", "ficha_matricula")["periodo"] == "2025-II"

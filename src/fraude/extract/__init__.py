@@ -1,7 +1,7 @@
 """Extracción de campos estructurados desde OCR."""
 
 from fraude.extract.fields import (
-    DOCUMENT_KEYWORDS,
+    DOCUMENT_PATTERNS,
     FIELD_SPECS,
     ExtractionResult,
     detect_document_type,
@@ -12,7 +12,7 @@ from fraude.extract.fields import (
 )
 
 __all__ = [
-    "DOCUMENT_KEYWORDS",
+    "DOCUMENT_PATTERNS",
     "FIELD_SPECS",
     "ExtractionResult",
     "detect_document_type",

@@ -1,10 +1,11 @@
 SHELL := /bin/bash
 COMPOSE := docker compose
 CONFIG ?= configs/base.yaml
+SAMPLES ?= data/muestras
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell gpu demo test lint fmt lock synth build clean
+.PHONY: help setup up down shell gpu demo test lint fmt lock synth audit-samples build clean
 
 help: ## Muestra los comandos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -46,6 +47,10 @@ lock: ## Regenera uv.lock (ejecutar en el host)
 
 synth: ## Genera el dataset sintético v1 en el host (ARGS="--count 42")
 	uv run python -m fraude.synth.build $(ARGS)
+
+audit-samples: ## Audita el corpus local y ejecuta calidad/forense sin OCR
+	uv run python -m fraude.eval.corpus_audit $(SAMPLES) \
+		--pipeline --out artifacts/eval/muestras_audit.json
 
 build: ## Reconstruye la imagen
 	$(COMPOSE) build

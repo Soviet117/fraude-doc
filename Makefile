@@ -5,7 +5,7 @@ SAMPLES ?= data/muestras
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell gpu demo test lint fmt lock synth audit-samples build clean
+.PHONY: help setup up down shell gpu demo test lint fmt lock synth audit-samples ocr-samples build clean
 
 help: ## Muestra los comandos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -51,6 +51,10 @@ synth: ## Genera el dataset sintético v1 en el host (ARGS="--count 42")
 audit-samples: ## Audita el corpus local y ejecuta calidad/forense sin OCR
 	uv run python -m fraude.eval.corpus_audit $(SAMPLES) \
 		--pipeline --out artifacts/eval/muestras_audit.json
+
+ocr-samples: ## Ejecuta OCR real con docTR sobre el corpus local (requiere extra ml)
+	uv run python -m fraude.eval.ocr_samples $(SAMPLES) \
+		--out artifacts/eval/ocr_samples.json --text-dir artifacts/ocr/samples
 
 build: ## Reconstruye la imagen
 	$(COMPOSE) build

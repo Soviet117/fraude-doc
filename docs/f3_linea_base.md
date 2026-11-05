@@ -7,10 +7,11 @@
 **Semilla:** 42 · **Bootstrap:** 2000 remuestras · **Umbral fijo:** 0.50
 
 Esta tabla es el piso que F4 debe superar. Se construyó con el dataset sintético v1
-mientras el CETPRO no entrega documentos reales y docTR no está instalado en el host.
-Los campos y el tipo documental se tomaron del manifiesto como **OCR oráculo**; por eso
-la tabla mide reglas, registro, calidad y señales forenses, pero **no** mide OCR ni
-extracción real.
+mientras el CETPRO no entrega documentos reales. Los campos y el tipo documental se
+tomaron del manifiesto como **OCR oráculo**; por eso la tabla mide reglas, registro,
+calidad y señales forenses, pero **no** mide OCR ni extracción real. La medición de OCR
+real con docTR sobre `data/muestras` se reporta aparte en
+[`docs/ocr_muestras.md`](ocr_muestras.md).
 
 ---
 
@@ -26,10 +27,10 @@ extracción real.
 | Registro | Espejo sintético de 14 personas (`data/registry/synthetic.jsonl`) |
 | Forense | Calculado sobre la imagen (ELA, ruido, cromática, JPEG, metadatos, copy-move) |
 | Calidad | Calculada sobre la imagen |
-| OCR | No ejecutado; docTR no está instalado en este host |
+| OCR | No usado en esta tabla; medición real separada en [`docs/ocr_muestras.md`](ocr_muestras.md) |
 
-**No se midió:** OCR real, extracción real, T3–T8 (no están en test), documentos reales,
-calibración, latencia ni comportamiento en producción.
+**No se midió en esta tabla:** OCR real, extracción real, T3–T8 (no están en test),
+documentos reales, calibración, latencia ni comportamiento en producción.
 
 ---
 
@@ -145,7 +146,9 @@ no es interpretable. El único tipo con positivos es `certificado_estudios`, y s
 ## 5. Limitaciones
 
 1. **OCR oráculo.** Los campos y el tipo documental vienen del manifiesto, no de docTR.
-   La tabla no mide OCR ni extracción; un OCR real puede fallar de otra forma.
+   La tabla no mide OCR ni extracción; un OCR real puede fallar de otra forma. La
+   medición real sobre `data/muestras` está en [`docs/ocr_muestras.md`](ocr_muestras.md)
+   y no reemplaza esta tabla porque usa otro corpus y otro protocolo.
 2. **Dataset sintético.** No sustituye documentos reales del CETPRO. Sirve como piso
    reproducible, no como estimación de desempeño institucional.
 3. **Un solo grupo en test.** Las 30 muestras de test son de `persona_0001`; los IC
@@ -204,7 +207,7 @@ comando anterior.
 F3 queda cerrada como línea base provisional. **No se inicia F4** hasta contar con:
 
 - documentos reales del CETPRO, anonimizados y con acuerdo de uso;
-- docTR instalado y OCR medido sobre esos documentos;
+- OCR medido sobre esos documentos reales (docTR ya está instalado);
 - más personas/grupos en test para que los intervalos bootstrap sean informativos;
 - muestras de T3–T8 en test para medir lo que esta tabla no mide;
 - registro institucional (o una versión autorizada) para el cruce;

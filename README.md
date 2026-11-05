@@ -2,7 +2,7 @@
 
 Prototipo de investigación aplicada que analiza documentos académicos (DNI, certificados de estudios, partidas, fichas de matrícula, actas, certificados de módulo y títulos de Auxiliar Técnico) combinando **visión por computadora** y **procesamiento de lenguaje natural**, y devuelve un **nivel de riesgo de autenticidad con evidencias explicables**.
 
-> Estado: **fase F3 (línea base) cerrada de forma provisional** — F0–F2 cerrados en el entorno local con datos sintéticos (entorno, contrato `Observation`, ingesta, calidad, dataset sintético v1, ataques T1–T8 y particiones agrupadas); la entrega de documentos reales del CETPRO (F1) sigue pendiente. F3 integra forense clásico, OCR opcional, extracción, reglas y cruce con registro, con una tabla provisional sobre datos sintéticos. **F4 no se inicia** hasta contar con documentos reales del CETPRO y docTR instalado.
+> Estado: **fase F3 (línea base) cerrada de forma provisional** — F0–F2 cerrados en el entorno local con datos sintéticos (entorno, contrato `Observation`, ingesta, calidad, dataset sintético v1, ataques T1–T8 y particiones agrupadas); la entrega de documentos reales del CETPRO (F1) sigue pendiente. F3 integra forense clásico, OCR opcional, extracción, reglas y cruce con registro, con una tabla provisional sobre datos sintéticos. El corpus local `data/muestras` (20 documentos sintéticos, uno por ataque T1–T8) fue auditado y sirve para pruebas de integración, pero **no alcanza para entrenar F4**. **F4 no se inicia** hasta contar con documentos reales del CETPRO y docTR instalado.
 
 ## Documentación
 
@@ -13,6 +13,7 @@ Prototipo de investigación aplicada que analiza documentos académicos (DNI, ce
 | [`docs/guia_anotacion.md`](docs/guia_anotacion.md) | Taxonomía T1–T8 y criterios de anotación |
 | [`docs/solicitud_cetpro.md`](docs/solicitud_cetpro.md) | Plantilla de solicitud formal de documentos al CETPRO |
 | [`docs/f3_linea_base.md`](docs/f3_linea_base.md) | Tabla F3 provisional, umbrales, IC bootstrap y limitaciones |
+| [`docs/auditoria_muestras.md`](docs/auditoria_muestras.md) | Composición, integridad y límites del corpus local de 20 muestras |
 
 ## Resumen técnico
 
@@ -33,7 +34,8 @@ Prototipo de investigación aplicada que analiza documentos académicos (DNI, ce
 
 - **F0–F2 cerrados en el entorno local:** Docker, CI, contrato `Observation`, ingesta por hash, calidad, dataset sintético v1 (348 muestras), ataques T1–T8, aumentación y particiones agrupadas. F1 conserva pendiente la entrega de documentos reales del CETPRO.
 - **F3 implementado:** forense clásico, adaptador docTR, extracción por tipo, motor de reglas, cruce con registro y pipeline integrado.
-- **F3 evaluado de forma provisional:** 150 tests pasando; tabla en [`docs/f3_linea_base.md`](docs/f3_linea_base.md) con `fields_source=manifest_oracle` porque docTR no está instalado en el host.
+- **F3 evaluado de forma provisional:** 157 tests pasando; tabla en [`docs/f3_linea_base.md`](docs/f3_linea_base.md) con `fields_source=manifest_oracle` porque docTR no está instalado en el host.
+- **Corpus local auditado:** 20/20 hashes correctos, 0 errores de integridad y 20/20 imágenes aptas para calidad. Los metadatos de Photoshop separan 8/8 manipulados (atajo del generador, no detección) y copy-move no marca ninguna muestra. Detalle en [`docs/auditoria_muestras.md`](docs/auditoria_muestras.md).
 - **Pendiente:** verificar la imagen en la PC del compañero y el laboratorio; instalar docTR/extra `ml`; obtener documentos reales y registro institucional para F4.
 
 ## Arranque rápido
@@ -43,6 +45,7 @@ make setup   # crea .env con UID/GID
 make up      # levanta el contenedor de desarrollo
 make test    # pytest dentro del contenedor
 make demo    # Streamlit en localhost:8501
+make audit-samples  # audita data/muestras con calidad/forense, sin OCR
 ```
 
 Sin Docker, para tests y lint: `uv sync && uv run pytest -q && uv run ruff check .`.

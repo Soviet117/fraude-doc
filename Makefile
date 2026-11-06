@@ -2,14 +2,15 @@ SHELL := /bin/bash
 COMPOSE := docker compose
 CONFIG ?= configs/base.yaml
 SAMPLES ?= data/muestras
+TODAY ?= 2026-11-05
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell gpu demo test lint fmt lock synth audit-samples ocr-samples build clean
+.PHONY: help setup up down shell gpu demo test lint fmt lock synth audit-samples ocr-samples eval-samples build clean
 
 help: ## Muestra los comandos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Crea .env con el UID/GID del usuario actual
 	@printf "UID=%s\nGID=%s\n" "$$(id -u)" "$$(id -g)" > .env
@@ -55,6 +56,10 @@ audit-samples: ## Audita el corpus local y ejecuta calidad/forense sin OCR
 ocr-samples: ## Ejecuta OCR real con docTR sobre el corpus local (requiere extra ml)
 	uv run python -m fraude.eval.ocr_samples $(SAMPLES) \
 		--out artifacts/eval/ocr_samples.json --text-dir artifacts/ocr/samples
+
+eval-samples: ## Evalúa el pipeline completo sobre las muestras en modos as_is y stripped
+	uv run python -m fraude.eval.samples_eval $(SAMPLES) \
+		--mode both --out artifacts/eval/samples_pipeline.json --today $(TODAY)
 
 build: ## Reconstruye la imagen
 	$(COMPOSE) build

@@ -201,6 +201,53 @@ def test_invalid_resolution_is_reported() -> None:
     assert "RESOLUCION_INVALIDA" in _codes(fields, "titulo_auxiliar_tecnico")
 
 
+@pytest.mark.parametrize(
+    "program",
+    (
+        "Computacion el Informâtica",
+        "Administracion de Empresas",
+        "Mecânica Automotriz",
+        "Enfermeria Técnica",
+        "COCINA",
+    ),
+)
+def test_ocr_program_variants_match_catalog(program: str) -> None:
+    fields = {**CLEAN_FICHA, "programa": program}
+
+    assert "PROGRAMA_DESCONOCIDO" not in _codes(fields, "ficha_matricula")
+
+
+@pytest.mark.parametrize(
+    "module",
+    (
+        "Ofimâtica yt herramientas digitales",
+        "Contabilidad basica",
+        "Cuidados bâsicos del paciente",
+        "Automatizacioni industrial",
+    ),
+)
+def test_ocr_module_variants_match_catalog(module: str) -> None:
+    fields = {**CLEAN_FICHA, "modulo": module}
+
+    assert "MODULO_DESCONOCIDO" not in _codes(fields, "ficha_matricula")
+
+
+@pytest.mark.parametrize(
+    "resolution",
+    (
+        "N.° 252-2026-DG-CETPRO-SA",
+        "N.O 214-2026-DG-CETPRO-SA",
+        "N.9116-2026-DG-CETPRO-SA",
+        "N.o 406-2026-DG-CETPRO-SA",
+        "RD-1234-2025-CETPRO-SA",
+    ),
+)
+def test_resolution_formats_are_accepted(resolution: str) -> None:
+    fields = {**CLEAN_TITULO, "resolucion": resolution}
+
+    assert "RESOLUCION_INVALIDA" not in _codes(fields, "titulo_auxiliar_tecnico")
+
+
 def test_out_of_range_grade_is_reported() -> None:
     fields = {**CLEAN_ACTA, "nota_0": "25"}
 

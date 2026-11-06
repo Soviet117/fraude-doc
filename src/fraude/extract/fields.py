@@ -15,6 +15,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 from fraude.ocr.engine import OcrLine, OcrPage, OcrWord, group_lines
@@ -63,7 +64,10 @@ FIELD_SPECS: dict[str, FieldSpec] = {
             "digits",
         ),
         "promedio": (("Promedio general", "Promedio"), "decimal"),
-        "fecha_emision": (("Fecha de emisión", "Emisión", "Emision"), "date"),
+        "fecha_emision": (
+            ("Fecha de emisión", "Emisión", "Emision", "Se expide", "Expedido"),
+            "date",
+        ),
     },
     "partida_nacimiento": {
         "nombre": (("Nombre", "Nombres y apellidos", "Nombres"), "text"),
@@ -109,7 +113,10 @@ FIELD_SPECS: dict[str, FieldSpec] = {
         "periodo": (("Periodo",), "period"),
         "horas": (("Horas", "Carga horaria"), "digits"),
         "nota": (("Nota final", "Nota"), "digits"),
-        "fecha_emision": (("Fecha de emisión", "Emisión", "Emision"), "date"),
+        "fecha_emision": (
+            ("Fecha de emisión", "Emisión", "Emision", "Se expide", "Expedido"),
+            "date",
+        ),
     },
     "titulo_auxiliar_tecnico": {
         "estudiante": (("Estudiante", "Apellidos y nombres", "Apellidos"), "text"),
@@ -119,7 +126,10 @@ FIELD_SPECS: dict[str, FieldSpec] = {
             "text",
         ),
         "resolucion": (("Resolución", "Resolucion"), "text"),
-        "fecha_emision": (("Fecha de emisión", "Emisión", "Emision"), "date"),
+        "fecha_emision": (
+            ("Fecha de emisión", "Emisión", "Emision", "Se expide", "Expedido"),
+            "date",
+        ),
     },
 }
 
@@ -144,6 +154,25 @@ DOCUMENT_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 _DATE_RE = re.compile(r"\b\d{1,2}/\d{1,2}/\d{4}\b")
+_SPANISH_MONTHS = {
+    "enero": 1,
+    "febrero": 2,
+    "marzo": 3,
+    "abril": 4,
+    "mayo": 5,
+    "junio": 6,
+    "julio": 7,
+    "agosto": 8,
+    "setiembre": 9,
+    "septiembre": 9,
+    "octubre": 10,
+    "noviembre": 11,
+    "diciembre": 12,
+}
+_LONG_DATE_RE = re.compile(
+    r"\b(\d{1,2})\s+de\s+(" + "|".join(_SPANISH_MONTHS) + r")\s+de\s+(\d{4})\b",
+    re.IGNORECASE,
+)
 _DNI_RE = re.compile(r"\b\d{8}\b")
 _PERIOD_RE = re.compile(
     r"\b(20\d{2})\s*[-\u2013]\s*(I{1,2}|1{1,2}|2)\b",
@@ -411,7 +440,17 @@ def _parse_value(value: str, kind: str) -> Any | None:
         return match.group(0) if match else None
     if kind == "date":
         match = _DATE_RE.search(value)
-        return match.group(0) if match else None
+        if match is not None:
+            return match.group(0)
+        long_match = _LONG_DATE_RE.search(value)
+        if long_match is None:
+            return None
+        day, month_name, year = long_match.groups()
+        try:
+            parsed = date(int(year), _SPANISH_MONTHS[month_name.lower()], int(day))
+        except ValueError:
+            return None
+        return parsed.strftime("%d/%m/%Y")
     if kind == "period":
         match = _PERIOD_RE.search(value)
         if match is None:

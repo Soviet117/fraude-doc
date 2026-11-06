@@ -405,3 +405,53 @@ def test_extract_period_normalization() -> None:
     assert extract_from_text("Periodo: 2024-1", "ficha_matricula")["periodo"] == "2024-I"
     assert extract_from_text("Periodo: 2025-11", "ficha_matricula")["periodo"] == "2025-II"
     assert extract_from_text("Periodo: 2025-II", "ficha_matricula")["periodo"] == "2025-II"
+
+
+def test_extract_long_emission_date_on_next_line() -> None:
+    text = """CERTIFICADO DE ESTUDIOS
+Estudiante: Quispe Mamani, José Luis
+Se expide el presente certificado a solicitud del interesado para los fines que estime conveniente.
+Nueva Cajamarca, 15 de febrero de 2026."""
+
+    fields = extract_from_text(text, "certificado_estudios")
+
+    assert fields["fecha_emision"] == "15/02/2026"
+
+
+def test_extract_long_emission_date_inline() -> None:
+    text = """CERTIFICADO DE MÓDULO OCUPACIONAL
+Estudiante: Quispe Mamani, José Luis
+Se expide el presente certificado en la ciudad de Nueva Cajamarca, 30 de agosto de 2026, para los fines que el interesado estime conveniente."""
+
+    fields = extract_from_text(text, "certificado_modulo")
+
+    assert fields["fecha_emision"] == "30/08/2026"
+
+
+def test_extract_long_emission_date_for_titulo() -> None:
+    text = """TÍTULO DE AUXILIAR TÉCNICO
+Estudiante: Quispe Mamani, José Luis
+EXPEDIDO EL 29 DE SETIEMBRE DE 2026"""
+
+    fields = extract_from_text(text, "titulo_auxiliar_tecnico")
+
+    assert fields["fecha_emision"] == "29/09/2026"
+
+
+def test_invalid_long_date_is_omitted() -> None:
+    text = """CERTIFICADO DE ESTUDIOS
+Se expide el presente certificado a solicitud del interesado.
+Nueva Cajamarca, 31 de febrero de 2026."""
+
+    fields = extract_from_text(text, "certificado_estudios")
+
+    assert "fecha_emision" not in fields
+
+
+def test_three_digit_day_is_not_silently_corrected() -> None:
+    text = """TÍTULO DE AUXILIAR TÉCNICO
+EXPEDIDO EL 291 DE SETIEMBRE DE 2026"""
+
+    fields = extract_from_text(text, "titulo_auxiliar_tecnico")
+
+    assert "fecha_emision" not in fields

@@ -96,6 +96,56 @@ def test_exact_dni_with_wrong_program_reports_diff() -> None:
     assert any(diff.startswith("programa:") for diff in report.diffs)
 
 
+def test_ocr_variant_program_and_module_do_not_report_diff() -> None:
+    report = cross_registry(
+        {
+            "estudiante": "Quispe Mamani, José Luis",
+            "dni": "12345678",
+            "programa": "Computacion el Informâtica",
+            "modulo": "Ofimática yt herramientas digitales",
+            "periodo": "2025-I",
+        },
+        ENTRIES,
+    )
+
+    assert report.matched is True
+    assert report.diffs == []
+
+
+def test_real_program_difference_still_reports_diff() -> None:
+    report = cross_registry(
+        {
+            "estudiante": "Quispe Mamani, José Luis",
+            "dni": "12345678",
+            "programa": "Enfermería Técnica",
+        },
+        ENTRIES,
+    )
+
+    assert any(diff.startswith("programa:") for diff in report.diffs)
+
+
+def test_multi_student_acta_is_not_crossed_against_one_student() -> None:
+    report = cross_registry(
+        {
+            "programa": "Computación e Informática",
+            "modulo": "Ofimática y herramientas digitales",
+            "periodo": "2025-I",
+            "estudiante_0": "Otra Persona",
+            "dni_0": "00000000",
+            "nota_0": "16",
+            "estudiante_1": "Flores Rojas, Ana María",
+            "dni_1": "87654321",
+            "nota_1": "15",
+        },
+        ENTRIES,
+    )
+
+    assert report.matched is False
+    assert report.score is None
+    assert "varios estudiantes" in report.diffs[0]
+
+
 def test_unknown_person_does_not_match() -> None:
     report = cross_registry(
         {

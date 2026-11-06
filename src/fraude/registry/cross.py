@@ -108,6 +108,16 @@ def cross_registry(
         )
 
     values = {key: str(value).strip() for key, value in fields.items() if value is not None}
+    if _has_indexed_students(values) and _single_identity(values) is None:
+        # Un acta contiene varias personas; compararla contra un único
+        # ``estudiante_0`` produce falsos negativos de registro. Sin un titular
+        # inequívoco, el cruce no aplica y se omite el hallazgo.
+        return RegistryReport(
+            matched=False,
+            score=None,
+            diffs=["acta con varios estudiantes; el cruce requiere un titular único"],
+        )
+
     name = _candidate_name(values)
     dni = _candidate_dni(values)
     programa = values.get("programa")
@@ -183,13 +193,26 @@ def _diffs(
         ("periodo", periodo, entry.periodo),
         ("fecha_nacimiento", birth, entry.fecha_nacimiento),
     ):
-        if extracted and expected and _normalize(extracted) != _normalize(expected):
+        if not extracted or not expected:
+            continue
+        if label in {"programa", "modulo"}:
+            # El OCR confunde conectores y tildes (``Computacion el
+            # Informâtica``); una diferencia solo cuenta si el texto es
+            # realmente distinto, no si es una variante de lectura.
+            different = _text_similarity(extracted, expected) < 0.92
+        else:
+            different = _normalize(extracted) != _normalize(expected)
+        if different:
             diffs.append(f"{label}: extraido='{extracted}' registro='{expected}'")
     return diffs
 
 
-def _candidate_name(fields: dict[str, str]) -> str | None:
-    for key in ("estudiante", "nombre", "estudiante_0"):
+def _has_indexed_students(fields: dict[str, str]) -> bool:
+    return any(re.fullmatch(r"(?:estudiante|dni|nota)_\d+", key) for key in fields)
+
+
+def _single_identity(fields: dict[str, str]) -> str | None:
+    for key in ("estudiante", "nombre"):
         if fields.get(key):
             return fields[key]
     nombres = fields.get("nombres")
@@ -199,8 +222,12 @@ def _candidate_name(fields: dict[str, str]) -> str | None:
     return None
 
 
+def _candidate_name(fields: dict[str, str]) -> str | None:
+    return _single_identity(fields)
+
+
 def _candidate_dni(fields: dict[str, str]) -> str | None:
-    for key in ("dni", "numero", "dni_0"):
+    for key in ("dni", "numero"):
         value = fields.get(key)
         if value and _DNI_RE.match(value):
             return value

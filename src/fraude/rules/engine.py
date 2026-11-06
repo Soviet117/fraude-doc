@@ -7,8 +7,10 @@ humana ponderan. Cada código tiene severidad y mensaje en español.
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Iterable
 from datetime import date, datetime
+from difflib import SequenceMatcher
 from typing import Any
 
 from fraude.core.schemas import (
@@ -80,9 +82,18 @@ REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
 KNOWN_PROGRAMS = frozenset(PROGRAMS)
 KNOWN_MODULES = frozenset(module for modules in PROGRAMS.values() for module in modules)
 _PERIOD_RE = re.compile(r"^\d{4}-(I|II)$")
-_RESOLUTION_RE = re.compile(r"^RD-\d{3,5}-\d{4}-[A-Z0-9-]+$")
+# Acepta tanto ``RD-1234-2025-CETPRO-SA`` como el formato de las plantillas
+# ``N.° 252-2026-DG-CETPRO-SA`` (incluidas sus variantes OCR ``N.O`` y ``N.``).
+_RESOLUTION_RE = re.compile(
+    r"^(?:RD-|N[.\s]*[°ºoO0]?[.\s]*)\d{3,5}-\d{4}-[A-Z0-9-]+$",
+    re.IGNORECASE,
+)
 _DNI_RE = re.compile(r"^\d{8}$")
 _DATE_FORMATS = ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y")
+# El catálogo se compara sin tildes ni puntuación. Un umbral alto tolera las
+# confusiones típicas del OCR (``el`` por ``e``, ``yt`` por ``y``) sin aceptar
+# programas o módulos realmente distintos.
+CATALOG_SIMILARITY_THRESHOLD = 0.92
 
 
 def evaluate_rules(
@@ -258,7 +269,7 @@ def _check_dni(fields: dict[str, str], findings: list[RuleFinding]) -> None:
 
 def _check_catalog(fields: dict[str, str], findings: list[RuleFinding]) -> None:
     program = fields.get("programa")
-    if program is not None and program not in KNOWN_PROGRAMS:
+    if program is not None and _catalog_match(program, KNOWN_PROGRAMS) is None:
         _add(
             findings,
             "PROGRAMA_DESCONOCIDO",
@@ -266,7 +277,7 @@ def _check_catalog(fields: dict[str, str], findings: list[RuleFinding]) -> None:
             f"El programa '{program}' no está en el catálogo institucional.",
         )
     module = fields.get("modulo")
-    if module is not None and module not in KNOWN_MODULES:
+    if module is not None and _catalog_match(module, KNOWN_MODULES) is None:
         _add(
             findings,
             "MODULO_DESCONOCIDO",
@@ -320,6 +331,38 @@ def _check_catalog(fields: dict[str, str], findings: list[RuleFinding]) -> None:
         "horas",
         findings,
     )
+
+
+def _catalog_match(value: str, known: frozenset[str]) -> str | None:
+    """Devuelve la entrada canónica si el valor coincide exacta o difusamente."""
+    if value in known:
+        return value
+    normalized = _normalize_catalog(value)
+    best_score = 0.0
+    best_value: str | None = None
+    for candidate in known:
+        score = _catalog_similarity(normalized, _normalize_catalog(candidate))
+        if score > best_score:
+            best_score = score
+            best_value = candidate
+    if best_value is not None and best_score >= CATALOG_SIMILARITY_THRESHOLD:
+        return best_value
+    return None
+
+
+def _normalize_catalog(value: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", value)
+    without_accents = "".join(char for char in decomposed if not unicodedata.combining(char))
+    cleaned = re.sub(r"[^a-z0-9]+", " ", without_accents.lower())
+    return " ".join(cleaned.split())
+
+
+def _catalog_similarity(first: str, second: str) -> float:
+    try:
+        from rapidfuzz import fuzz
+    except ImportError:
+        return SequenceMatcher(None, first, second).ratio()
+    return float(fuzz.ratio(first, second)) / 100.0
 
 
 def _check_number(

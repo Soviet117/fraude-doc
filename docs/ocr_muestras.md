@@ -144,8 +144,8 @@ lo acepta porque el OCR perdió el espacio, no una letra.
 
 ## 7. Límites
 
-1. **Corpus sintético.** 20 documentos y 12 personas no sustituyen documentos
-   reales del CETPRO ni estiman desempeño institucional.
+1. **Corpus sintético.** 20 documentos y 12 personas no representan documentos
+   reales ni estiman desempeño institucional.
 2. **Una muestra por ataque.** No hay recall por ataque defendible.
 3. **Sin transcripción completa.** No se reporta CER/WER; el recall mide
    presencia de valores conocidos, no calidad global del texto.

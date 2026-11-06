@@ -130,11 +130,11 @@ Razones:
    ejemplar por ataque. El recall por ataque sería anecdótico.
 3. **Confusión de metadatos:** todas las manipulaciones comparten la misma firma
    de software. Sin un control explícito, el modelo aprendería el generador.
-4. **Sin campos completos:** el índice y `_personas.csv` no bastan para evaluar
-   reglas o extracción; se necesitaría OCR o un manifiesto de campos.
-5. **Sin OCR:** docTR no está instalado en este host, así que no se puede medir
-   la ruta de texto.
-6. **Sin registro institucional:** el cruce de registro sigue siendo sintético.
+4. **Campos incompletos:** el índice y `_personas.csv` no bastan para evaluar
+   reglas o extracción; se necesita OCR o un manifiesto de campos. El OCR ya se
+   midió (ver [`docs/ocr_muestras.md`](ocr_muestras.md)), pero el corpus sigue
+   siendo demasiado pequeño para entrenar.
+5. **Sin registro institucional:** el cruce de registro sigue siendo sintético.
 
 Por tanto, **F4 no se inicia con este corpus**. Cualquier número de entrenamiento
 obtenido aquí sería una demostración del generador, no evidencia del sistema.
@@ -154,13 +154,16 @@ obtenido aquí sería una demostración del generador, no evidencia del sistema.
 ## 6. Qué falta para F4
 
 - Más documentos sintéticos con **metadatos neutros o controlados** y variantes
-  de captura; o documentos reales anonimizados del CETPRO.
+  de captura. El alcance operativo no incluye documentos reales del CETPRO.
 - Particiones agrupadas por persona con cobertura suficiente por ataque.
 - Un conjunto de calibración separado del de prueba.
-- docTR instalado y OCR medido.
-- Registro institucional autorizado.
+- Registro académico sintético más completo (notas por estudiante/módulo) y,
+  mientras no exista, declarar que el cruce no cubre esos campos.
 - Un protocolo explícito para reportar el baseline de metadatos como control de
   fuga, no como resultado del modelo.
+
+El OCR ya está instalado y medido; la evaluación end-to-end del pipeline está en
+[`docs/muestras_pipeline.md`](muestras_pipeline.md).
 
 ---
 

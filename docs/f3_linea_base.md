@@ -74,6 +74,12 @@ resultado del sistema.
 
 ## 4. Resultados
 
+> **Alcance.** Esta tabla usa campos y tipo documental del manifiesto. La evaluación
+> end-to-end con OCR real sobre las 20 muestras de `data/muestras` está en
+> [`docs/muestras_pipeline.md`](muestras_pipeline.md) y muestra un recall mucho menor:
+> F3 detecta T7 y T8, pero no T1–T6. No cites la tabla de esta sección como desempeño
+> del pipeline completo.
+
 ### 4.1 Tabla principal
 
 | Split / umbral | Umbral | TP | TN | FP | FN | Precision | Recall | F1 | FPR | PR-AUC | ROC-AUC |
@@ -204,14 +210,20 @@ comando anterior.
 
 ## 7. Qué sigue
 
-F3 queda cerrada como línea base provisional. **No se inicia F4** hasta contar con:
+F3 queda cerrada como línea base provisional. El alcance operativo es el corpus
+sintético; no se usarán documentos reales del CETPRO. **No se inicia F4** hasta contar con:
 
-- documentos reales del CETPRO, anonimizados y con acuerdo de uso;
-- OCR medido sobre esos documentos reales (docTR ya está instalado);
-- más personas/grupos en test para que los intervalos bootstrap sean informativos;
-- muestras de T3–T8 en test para medir lo que esta tabla no mide;
-- registro institucional (o una versión autorizada) para el cruce;
-- protocolo de calibración de §7.4 antes de reportar probabilidades.
+- un corpus sintético ampliado: más personas, más documentos base y varias muestras por
+  ataque T1–T8 (hoy hay una sola por ataque en `data/muestras`);
+- particiones agrupadas por persona y un conjunto de ataque no visto (ADR-09);
+- más grupos en test para que los intervalos bootstrap sean informativos;
+- evaluación end-to-end del pipeline, no solo de reglas con campos oráculo
+  ([`docs/muestras_pipeline.md`](muestras_pipeline.md));
+- registro institucional autorizado o, mientras no exista, un espejo sintético más
+  grande y declarado como tal;
+- protocolo de calibración de §7.4 antes de reportar probabilidades;
+- evaluadores humanos para medir el acuerdo (kappa).
 
 Mientras eso no exista, cualquier número de esta tabla debe citarse como **provisional,
-sobre datos sintéticos y con campos oráculo**.
+sobre datos sintéticos y con campos oráculo**. La falta de documentos reales ya no es el
+bloqueo de F4: el bloqueo es el volumen y la cobertura del corpus.

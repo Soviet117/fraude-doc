@@ -6,7 +6,7 @@ TODAY ?= 2026-11-05
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell gpu demo test lint fmt lock synth synth-smoke synth-v2 validate-v2 folds-v2 train-f4 eval-f4 figures-f4 gradcam-f4 audit-samples ocr-samples eval-samples build clean
+.PHONY: help setup up down shell gpu demo test lint fmt lock synth synth-smoke synth-v2 validate-v2 folds-v2 train-f4 eval-f4 figures-f4 gradcam-f4 train-f5 eval-f5 figures-f5 pipeline-v2 eval-f6 features-f7 train-f7 audit-samples ocr-samples eval-samples build clean
 
 help: ## Muestra los comandos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -80,6 +80,32 @@ gradcam-f4: ## Genera Grad-CAM de TP/TN/FP/FN del fold con mejor PR-AUC
 	uv run python -m fraude.models.gradcam --checkpoint artifacts/models/f4/fold_2.pt \
 		--data data/synthetic/v2 --oof artifacts/models/f4/oof.jsonl \
 		--cache-dir artifacts/models/f4/cache --out artifacts/models/f4/gradcam
+
+train-f5: ## Entrena F5 (U-Net) con folds agrupados (ARGS="--epochs 12 --device cpu")
+	uv run python -m fraude.models.seg_train --data data/synthetic/v2 \
+		--out artifacts/models/f5 $(ARGS)
+
+eval-f5: ## Evalúa la localización OOF de F5 con umbral fijo, calibrado y oráculo
+	uv run python -m fraude.models.seg_evaluate --oof artifacts/models/f5/oof.jsonl \
+		--out artifacts/models/f5/eval.json --markdown artifacts/models/f5/eval.md \
+		--image-size 128
+
+figures-f5: ## Genera curvas, barrido de umbral, Pixel-F1 por ataque y ejemplos
+	uv run python -m fraude.models.seg_report --metrics artifacts/models/f5/metrics.json \
+		--eval artifacts/models/f5/eval.json --oof artifacts/models/f5/oof.jsonl \
+		--image-size 128 --out artifacts/models/f5/figures
+
+pipeline-v2: ## Ejecuta calidad, forense, OCR, reglas y registro sobre los 50 documentos base
+	uv run python -m fraude.eval.v2_pipeline --force
+
+eval-f6: ## Evalúa la rama semántica F6 y la detección de duplicados
+	uv run python -m fraude.nlp.evaluate
+
+features-f7: ## Construye la tabla de características de F7 desde F3-F6
+	uv run python -m fraude.fusion.build_features
+
+train-f7: ## Entrena y evalúa la fusión calibrada F7
+	uv run python -m fraude.fusion.train
 
 audit-samples: ## Audita el corpus local y ejecuta calidad/forense sin OCR
 	uv run python -m fraude.eval.corpus_audit $(SAMPLES) \

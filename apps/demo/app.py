@@ -29,6 +29,7 @@ from fraude.rules.engine import REQUIRED_FIELDS
 SAMPLE_ROOT = Path("data/muestras")
 SAMPLE_INDEX = SAMPLE_ROOT / "_indice.csv"
 SAMPLE_PEOPLE = SAMPLE_ROOT / "_personas.csv"
+F4_CHECKPOINT = Path("artifacts/models/f4/fold_2.pt")
 DEFAULT_THRESHOLD = 0.5
 IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"})
 
@@ -153,7 +154,7 @@ PHASES = [
     {
         "Fase": "F4",
         "Entregable": "Modelo visual de documento",
-        "Estado": "No iniciado: 20 muestras no permiten entrenamiento defendible",
+        "Estado": "Experimental: corpus v2 de 50 documentos y EfficientNet-B0",
     },
     {"Fase": "F5", "Entregable": "Localización y explicabilidad", "Estado": "Pendiente"},
     {"Fase": "F6", "Entregable": "Rama semántica y NLP", "Estado": "Pendiente"},
@@ -843,9 +844,74 @@ def _phases_tab() -> None:
             unsafe_allow_html=True,
         )
     st.caption(
-        "F4 no se inicia con 20 muestras y una sola variante por ataque: no hay volumen "
-        "para entrenar ni para estimar generalización. El pipeline completo ya se midió "
-        "con `make eval-samples`; el siguiente paso es ampliar el corpus sintético."
+        "F4 se entrena con 50 documentos sintéticos (25/25) y validación cruzada agrupada "
+        "de 5 vías. Sigue siendo una prueba de viabilidad: no hay documentos reales y las "
+        "cifras no estiman generalización institucional."
+    )
+
+
+@st.cache_resource(show_spinner=False)
+def _load_f4_model(checkpoint: str) -> Any:
+    from fraude.models.infer import load_checkpoint
+
+    return load_checkpoint(Path(checkpoint))
+
+
+def _f4_tab(data: bytes | None, filename: str) -> None:
+    """Panel experimental del clasificador visual de página (F4)."""
+    st.markdown(
+        '<div class="section-title"><h3>F4 · modelo visual de página</h3>'
+        "<span>experimental, entrenado con 50 documentos sintéticos</span></div>",
+        unsafe_allow_html=True,
+    )
+    checkpoint = F4_CHECKPOINT
+    if not checkpoint.is_file():
+        st.info(
+            "Todavía no hay un checkpoint F4 en `artifacts/models/f4/`. "
+            "Entrena el modelo y vuelve a cargar la demo."
+        )
+        st.code('make train-f4 ARGS="--epochs 12 --device cpu"', language="bash")
+        return
+    if data is None:
+        st.info("Selecciona una muestra o sube un documento en la barra lateral.")
+        return
+
+    import io
+
+    from PIL import Image
+
+    from fraude.models.infer import explain_image, predict_image
+
+    try:
+        image = Image.open(io.BytesIO(data)).convert("RGB")
+        model, config = _load_f4_model(str(checkpoint))
+        image_size = int(config.get("image_size", 224))
+        score = predict_image(model, image, image_size=image_size)
+        heatmap, heat_score, _ = explain_image(model, image, image_size=image_size)
+    except Exception as exc:  # pragma: no cover - depende del checkpoint local
+        st.error(f"No se pudo ejecutar F4: {exc}")
+        return
+
+    left, right = st.columns([1, 1.15], gap="large")
+    with left:
+        st.image(image, caption=filename or "documento", use_container_width=True)
+    with right:
+        band = "Manipulado (score ≥ 0.50)" if score >= DEFAULT_THRESHOLD else "Sin indicio visual"
+        st.metric("Score F4", f"{score:.3f}", band)
+        st.caption(
+            "Salida de un EfficientNet-B0 de página entrenado con datos sintéticos "
+            "(checkpoint del fold 2, el de mejor PR-AUC de validación). "
+            "No es una probabilidad calibrada y no reemplaza la revisión humana. "
+            "T7/T8 quedan fuera de esta rama visual."
+        )
+        st.image(
+            heatmap,
+            caption=f"Grad-CAM · score {heat_score:.3f}",
+            use_container_width=True,
+        )
+    st.caption(
+        "El mapa de calor es una ayuda cualitativa: F4 clasifica la página completa, "
+        "no localiza la manipulación. La localización formal es F5."
     )
 
 
@@ -1188,7 +1254,9 @@ def main() -> None:
     people_rows = _load_people(str(SAMPLE_PEOPLE))
     data, filename, selected_row, registry_rows = _sidebar(sample_rows, people_rows)
 
-    analysis_tab, phases_tab = st.tabs(["Análisis", "Fases del proyecto"])
+    analysis_tab, f4_tab, phases_tab = st.tabs(
+        ["Análisis", "F4 experimental", "Fases del proyecto"]
+    )
 
     with analysis_tab:
         if data is None:
@@ -1203,6 +1271,9 @@ def main() -> None:
                 )
             observation = Observation.model_validate(payload)
             _render_result(observation, data, filename, selected_row)
+
+    with f4_tab:
+        _f4_tab(data, filename)
 
     with phases_tab:
         _phases_tab()

@@ -13,6 +13,7 @@ import argparse
 import json
 import random
 import shutil
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -62,21 +63,47 @@ def generate_attacks(
     seed: int = 42,
     copies: int = 1,
     dpi: int = 150,
+    attacks: Sequence[str] | None = None,
+    per_attack: Mapping[str, int] | None = None,
 ) -> list[DocumentRecord]:
-    """Genera al menos una muestra por ataque T1-T8 cuando hay un padre apto."""
+    """Genera muestras manipuladas T1-T8 cuando hay un padre apto.
+
+    ``copies`` fija cuántas copias se generan por ataque. ``attacks`` permite
+    limitar el subconjunto de familias (útil para lotes de humo) y
+    ``per_attack`` sobrescribe el número de copias de una familia concreta.
+    """
     if not authentic:
         raise ValueError("Se necesita al menos un documento auténtico")
     if copies < 1:
         raise ValueError("copies debe ser mayor que cero")
+
+    selected = tuple(attacks) if attacks is not None else ATTACK_TYPES
+    unknown = sorted(set(selected) - set(ATTACK_TYPES))
+    if unknown:
+        raise ValueError(f"Ataques no soportados: {', '.join(unknown)}")
+    if len(set(selected)) != len(selected):
+        raise ValueError("attacks no puede contener duplicados")
+
+    counts: dict[str, int] = {}
+    for attack_type in selected:
+        value = per_attack.get(attack_type, copies) if per_attack is not None else copies
+        if value < 0:
+            raise ValueError(f"El número de copias de {attack_type} no puede ser negativo")
+        counts[attack_type] = value
+    if per_attack is not None:
+        extra = sorted(set(per_attack) - set(selected))
+        if extra:
+            raise ValueError(f"per_attack incluye ataques no seleccionados: {', '.join(extra)}")
 
     source_dir = Path(source_dir) if source_dir is not None else Path(out_dir)
     out_dir = Path(out_dir)
     rng = random.Random(seed)
     records: list[DocumentRecord] = []
 
-    for attack_index, attack_type in enumerate(ATTACK_TYPES):
+    for attack_type in selected:
         parents = _candidates(authentic, attack_type)
-        for copy_index in range(copies):
+        attack_index = ATTACK_TYPES.index(attack_type)
+        for copy_index in range(counts[attack_type]):
             if not parents:
                 break
             parent = parents[(copy_index + attack_index) % len(parents)]
@@ -96,7 +123,7 @@ def generate_attacks(
                 )
             )
 
-    write_attacks_manifest(records, out_dir, seed=seed, copies=copies)
+    write_attacks_manifest(records, out_dir, seed=seed, copies=copies, per_attack=counts)
     return records
 
 
@@ -886,6 +913,7 @@ def write_attacks_manifest(
     *,
     seed: int = 42,
     copies: int = 1,
+    per_attack: Mapping[str, int] | None = None,
 ) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -894,7 +922,7 @@ def write_attacks_manifest(
         for record in records:
             handle.write(json.dumps(record.to_dict(), ensure_ascii=False) + "\n")
 
-    summary = {
+    summary: dict[str, Any] = {
         "schema_version": "1.0",
         "generator": "fraude.synth.attacks",
         "count": len(records),
@@ -903,6 +931,8 @@ def write_attacks_manifest(
         "by_attack": _count(record.primary_attack for record in records),
         "by_document_type": _count(record.document_type for record in records),
     }
+    if per_attack is not None:
+        summary["per_attack"] = dict(sorted(per_attack.items()))
     (out_dir / "attacks_summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",

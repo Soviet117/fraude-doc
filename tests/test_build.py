@@ -67,5 +67,22 @@ def test_builds_all_artifacts_and_links_splits(tmp_path: Path) -> None:
 def test_rejects_unknown_variants(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         build_dataset(tmp_path, count=7, identities=7, variants=("unknown",))
-    with pytest.raises(ValueError):
-        build_dataset(tmp_path, count=7, identities=7, variants=())
+
+
+def test_empty_variants_skips_augmentation(tmp_path: Path) -> None:
+    records = build_dataset(
+        tmp_path,
+        count=2,
+        identities=2,
+        variants=(),
+        attacks=("T1",),
+        per_attack={"T1": 1},
+        split=False,
+    )
+
+    assert len(records) == 3
+    assert all(record.augmentations == () for record in records)
+    assert not (tmp_path / "split_manifest.jsonl").exists()
+    build = json.loads((tmp_path / "build.json").read_text(encoding="utf-8"))
+    assert build["split"] is False
+    assert build["counts"]["augmented"] == 0

@@ -39,18 +39,20 @@ Si hay conflicto entre una instrucción suelta y el plan, **gana el plan**, salv
 
 ## 3. Estado actual del repositorio
 
-**Fase F0 cerrada en la laptop del equipo; F1 en curso.** Ya existe el scaffold:
+**F0–F4 cerrados en el entorno local; F5–F9 pendientes.** El repositorio ya contiene:
 
 - `pyproject.toml` + `uv.lock` (Python 3.13, deps core y extra `ml`).
 - `Dockerfile`, `compose.yaml`, `Makefile`, `.pre-commit-config.yaml`, CI en `.github/workflows/ci.yml`.
 - `src/fraude/core/schemas.py` con el contrato `Observation`.
-- `src/fraude/ingest/hashing.py` y `src/fraude/pipeline/run.py` (ingesta + hash).
-- `apps/demo/app.py` (Streamlit mínimo) y tests en `tests/` (9 pasando).
-- `docs/guia_anotacion.md` (taxonomía T1–T8 v1.0) y `docs/solicitud_cetpro.md` (plantilla F1).
+- Ingesta, calidad, forense clásico, OCR docTR, extracción, reglas, registro y pipeline integrado (F2–F3).
+- Dataset sintético v1 (`data/muestras`), corpus v2 de 50 documentos base y 300 imágenes con manifiestos, validación y folds agrupados (F1–F2).
+- `src/fraude/models/` con F4 experimental: EfficientNet-B0 de página, entrenamiento con folds agrupados, evaluación OOF, calibración, Grad-CAM e inferencia.
+- `apps/demo/app.py` (Streamlit) con pestañas de análisis heurístico, F4 experimental y estado de fases.
+- `docs/` con guía de anotación, línea base F3, auditoría/OCR de muestras y `f4_corpus_v2.md` con resultados y límites.
 
 La imagen Docker incluye el grupo `dev`, por lo que `make test` y `make lint` funcionan dentro del contenedor. **Pendiente de F0:** verificar la misma imagen en la laptop del compañero y en el laboratorio (SSH + `nvidia-smi`).
 
-**Aún no existe:** preproceso, forense, OCR, modelos, dataset, reglas, fusión ni evaluación. No asumas que están implementados: verifica antes de ejecutar.
+**Pendiente de F5–F9:** localización/parches, rama semántica, fusión calibrada, evaluación integral con varias semillas y cierre de demo/Cap. IV. No asumas que esas piezas existen: verifica antes de ejecutar. Los datos y artefactos (`data/`, `artifacts/`) están ignorados por git y no se versionan.
 
 ---
 

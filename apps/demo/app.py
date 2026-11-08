@@ -899,10 +899,12 @@ def _f4_tab(data: bytes | None, filename: str) -> None:
         band = "Manipulado (score ≥ 0.50)" if score >= DEFAULT_THRESHOLD else "Sin indicio visual"
         st.metric("Score F4", f"{score:.3f}", band)
         st.caption(
-            "Salida de un EfficientNet-B0 de página entrenado con datos sintéticos "
+            "Salida de un EfficientNet-B0 de página entrenado con el corpus v2 "
             "(checkpoint del fold 2, el de mejor PR-AUC de validación). "
             "No es una probabilidad calibrada y no reemplaza la revisión humana. "
-            "T7/T8 quedan fuera de esta rama visual."
+            "T7/T8 quedan fuera de esta rama visual. Las muestras del menú son "
+            "del corpus v1: para la demo F4 conviene subir una imagen de "
+            "`data/synthetic/v2/images/`."
         )
         st.image(
             heatmap,

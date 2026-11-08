@@ -6,7 +6,7 @@ TODAY ?= 2026-11-05
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell gpu demo test lint fmt lock synth audit-samples ocr-samples eval-samples build clean
+.PHONY: help setup up down shell gpu demo test lint fmt lock synth synth-smoke synth-v2 validate-v2 folds-v2 train-f4 eval-f4 gradcam-f4 audit-samples ocr-samples eval-samples build clean
 
 help: ## Muestra los comandos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -48,6 +48,34 @@ lock: ## Regenera uv.lock (ejecutar en el host)
 
 synth: ## Genera el dataset sintético v1 en el host (ARGS="--count 42")
 	uv run python -m fraude.synth.build $(ARGS)
+
+synth-smoke: ## Genera el lote de humo de 3 documentos con sus manifiestos
+	uv run python -m fraude.synth.smoke
+
+synth-v2: ## Genera el corpus v2 de 50 documentos (25 auténticos / 25 manipulados)
+	uv run python -m fraude.synth.build --out data/synthetic/v2 \
+		--count 25 --identities 10 --variants scan,photo,jpeg,rotate,shadow \
+		--per-attack T1=4,T2=4,T3=3,T4=3,T5=3,T6=3,T7=3,T8=2 --holdout T5
+
+validate-v2: ## Valida integridad, balance y particiones del corpus v2
+	uv run python -m fraude.synth.validate data/synthetic/v2 \
+		--expect-authentic 25 --expect-tampered 25 --require-splits
+
+folds-v2: ## Genera los folds agrupados de 5 vías sobre el corpus v2
+	uv run python -m fraude.synth.folds data/synthetic/v2 --folds 5 --seed 42
+
+train-f4: ## Entrena F4 con folds agrupados (ARGS="--epochs 12 --device cpu")
+	uv run python -m fraude.models.train --data data/synthetic/v2 \
+		--out artifacts/models/f4 $(ARGS)
+
+eval-f4: ## Evalúa las predicciones out-of-fold y genera la tabla
+	uv run python -m fraude.models.evaluate --oof artifacts/models/f4/oof.jsonl \
+		--out artifacts/models/f4/eval.json --markdown artifacts/models/f4/eval.md
+
+gradcam-f4: ## Genera Grad-CAM de TP/TN/FP/FN del fold con mejor PR-AUC
+	uv run python -m fraude.models.gradcam --checkpoint artifacts/models/f4/fold_2.pt \
+		--data data/synthetic/v2 --oof artifacts/models/f4/oof.jsonl \
+		--cache-dir artifacts/models/f4/cache --out artifacts/models/f4/gradcam
 
 audit-samples: ## Audita el corpus local y ejecuta calidad/forense sin OCR
 	uv run python -m fraude.eval.corpus_audit $(SAMPLES) \

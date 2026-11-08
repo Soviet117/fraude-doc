@@ -17,6 +17,8 @@ Prototipo de investigación aplicada que analiza documentos académicos (DNI, ce
 | [`docs/ocr_muestras.md`](docs/ocr_muestras.md) | Medición de OCR real con docTR, resultados y errores residuales |
 | [`docs/muestras_pipeline.md`](docs/muestras_pipeline.md) | Evaluación end-to-end de las 20 muestras, modos `as_is`/`stripped` y límites |
 | [`docs/f4_corpus_v2.md`](docs/f4_corpus_v2.md) | Corpus v2 de 50 documentos, folds agrupados, entrenamiento F4 y límites |
+| [`docs/model_card_f4.md`](docs/model_card_f4.md) | Model card de F4: uso previsto, datos, métricas y limitaciones |
+| [`docs/presentacion.md`](docs/presentacion.md) | Guion de demo, cifras citables, límites y checklist de sustentación |
 
 ## Resumen técnico
 
@@ -41,7 +43,7 @@ Prototipo de investigación aplicada que analiza documentos académicos (DNI, ce
 - **OCR real medido:** docTR 1.1.0 sobre las 20 muestras; recall de campos 0.924, tipo documental 1.000 y extracción 0.923. Los cuatro fallos restantes son errores reales de OCR y se documentan sin maquillar en [`docs/ocr_muestras.md`](docs/ocr_muestras.md).
 - **Corpus local auditado:** 20/20 hashes correctos, 0 errores de integridad y 20/20 imágenes aptas para calidad. Los metadatos de Photoshop separan 8/8 manipulados (atajo del generador, no detección) y copy-move no marca ninguna muestra. Detalle en [`docs/auditoria_muestras.md`](docs/auditoria_muestras.md).
 - **Corpus v2 para F4:** 50 documentos base (25/25), 10 personas, 7 tipos y 5 aumentaciones por documento; 300 imágenes y manifiestos con hashes. Validación de integridad, balance y folds agrupados en [`docs/f4_corpus_v2.md`](docs/f4_corpus_v2.md).
-- **F4 experimental cerrado:** EfficientNet-B0 de página, validación cruzada agrupada de 5 vías, OOF, calibración isotónica cruzada, umbrales 0.5/calibrado/FPR≤0.2/oráculo, IC bootstrap, desglose por ataque y Grad-CAM. Resultados OOF: PR-AUC 0.712 (IC 0.641-0.778), ROC-AUC 0.653, F1@0.5 0.541 (IC 0.446-0.625), precision 0.803, recall 0.408 y FPR 0.080. Detecta T5/T6 (recall 1.000) y falla T1/T4; los folds 0 y 4 quedan cerca del azar porque no contienen T5/T6. Detalle y límites en [`docs/f4_corpus_v2.md`](docs/f4_corpus_v2.md). Comandos `make synth-v2`, `validate-v2`, `folds-v2`, `train-f4`, `eval-f4` y `gradcam-f4`.
+- **F4 experimental cerrado:** EfficientNet-B0 de página, validación cruzada agrupada de 5 vías, OOF, calibración isotónica cruzada, umbrales 0.5/calibrado/FPR≤0.2/oráculo, IC bootstrap, desglose por ataque y Grad-CAM. Resultados OOF: PR-AUC 0.712 (IC 0.641-0.778), ROC-AUC 0.653, F1@0.5 0.541 (IC 0.446-0.625), precision 0.803, recall 0.408 y FPR 0.080. Detecta T5/T6 (recall 1.000) y falla T1/T4; los folds 0 y 4 quedan cerca del azar porque no contienen T5/T6. Supera el piso F3 en el corpus sintético (F1 0.541 vs 0.200), sin comparación controlada. Detalle y límites en [`docs/f4_corpus_v2.md`](docs/f4_corpus_v2.md). Comandos `make synth-v2`, `validate-v2`, `folds-v2`, `train-f4`, `eval-f4` y `gradcam-f4`.
 - **Pendiente para la presentación:** F5 (localización/parches para T1–T4), F6 (rama semántica), F7 (fusión calibrada), F8 (evaluación integral con varias semillas) y F9 (demo final/Cap. IV). También queda verificar la imagen en la PC del compañero y el laboratorio, y conseguir evaluadores humanos para el kappa.
 
 ## Arranque rápido

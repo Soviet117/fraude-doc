@@ -2,8 +2,9 @@
 
 Este documento describe el corpus de 50 documentos sintéticos construido para
 entrenar el clasificador visual de página (F4) y el protocolo mínimo con el que
-se evalúa. **No sustituye** la validación con documentos reales del CETPRO ni
-la localización de F5.
+se evalúa. Las secciones 1–2 hacen de **data card**; la model card resumida está
+en [`docs/model_card_f4.md`](model_card_f4.md). **No sustituye** la validación
+con documentos reales del CETPRO ni la localización de F5.
 
 ## 1. Composición
 
@@ -306,3 +307,17 @@ detecta DNI” sin decir que el corpus sintético asigna T5 solo a DNI.
   partición estratificada por familia de ataque; luego F6/F7 para semántica y
   fusión calibrada. La demo debe seguir presentándose como apoyo a la revisión
   humana, nunca como decisión automática.
+
+### 6.8 Comparación con F3 (no controlada)
+
+| Rama | Corpus | n | Precision | Recall | F1 | FPR |
+|---|---|---:|---:|---:|---:|---:|
+| F3 `stripped` | `data/muestras` | 20 | 0.500 | 0.125 | 0.200 | 0.083 |
+| F4 OOF @0.5 | corpus v2 visual | 270 | 0.803 | 0.408 | 0.541 | 0.080 |
+
+F4 supera el piso heurístico de F3 en el corpus sintético, pero **no es una
+comparación controlada**: distinto corpus, distinto tamaño y distinta
+prevalencia. F3 sigue siendo la única rama que detecta T7/T8 en la evaluación
+end-to-end; F4 aporta T5/T6. La comparación honesta es de complementariedad,
+no de “F4 reemplaza a F3”. Una comparación pareada exigiría el mismo conjunto
+y las mismas particiones, y queda para F8.

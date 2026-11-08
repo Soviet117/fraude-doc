@@ -48,7 +48,7 @@ Si hay conflicto entre una instrucción suelta y el plan, **gana el plan**, salv
 - Dataset sintético v1 (`data/muestras`), corpus v2 de 50 documentos base y 300 imágenes con manifiestos, validación y folds agrupados (F1–F2).
 - `src/fraude/models/` con F4 experimental: EfficientNet-B0 de página, entrenamiento con folds agrupados, evaluación OOF, calibración, Grad-CAM e inferencia.
 - `apps/demo/app.py` (Streamlit) con pestañas de análisis heurístico, F4 experimental y estado de fases.
-- `docs/` con guía de anotación, línea base F3, auditoría/OCR de muestras y `f4_corpus_v2.md` con resultados y límites.
+- `docs/` con guía de anotación, línea base F3, auditoría/OCR de muestras, `f4_corpus_v2.md` con resultados y límites, y `presentacion.md` con el guion de sustentación.
 
 La imagen Docker incluye el grupo `dev`, por lo que `make test` y `make lint` funcionan dentro del contenedor. **Pendiente de F0:** verificar la misma imagen en la laptop del compañero y en el laboratorio (SSH + `nvidia-smi`).
 

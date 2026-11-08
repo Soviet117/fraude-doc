@@ -154,13 +154,17 @@ PHASES = [
     {
         "Fase": "F4",
         "Entregable": "Modelo visual de documento",
-        "Estado": "Experimental: corpus v2 de 50 documentos y EfficientNet-B0",
+        "Estado": "Cerrado experimental: detecta T5/T6; T1-T4 quedan para F5",
     },
     {"Fase": "F5", "Entregable": "Localización y explicabilidad", "Estado": "Pendiente"},
     {"Fase": "F6", "Entregable": "Rama semántica y NLP", "Estado": "Pendiente"},
     {"Fase": "F7", "Entregable": "Fusión y calibración", "Estado": "Pendiente"},
     {"Fase": "F8", "Entregable": "Evaluación integral", "Estado": "Pendiente"},
-    {"Fase": "F9", "Entregable": "Demo final y Cap. IV", "Estado": "Pendiente"},
+    {
+        "Fase": "F9",
+        "Entregable": "Demo final y Cap. IV",
+        "Estado": "En curso: demo, model card y guía de presentación",
+    },
 ]
 
 CSS = """
@@ -844,8 +848,9 @@ def _phases_tab() -> None:
             unsafe_allow_html=True,
         )
     st.caption(
-        "F4 se entrena con 50 documentos sintéticos (25/25) y validación cruzada agrupada "
-        "de 5 vías. Sigue siendo una prueba de viabilidad: no hay documentos reales y las "
+        "F4 se entrenó con 50 documentos sintéticos (25/25) y validación cruzada agrupada "
+        "de 5 vías. Detecta T5/T6 y falla T1-T4, como se esperaba de un clasificador de "
+        "página. Sigue siendo una prueba de viabilidad: no hay documentos reales y las "
         "cifras no estiman generalización institucional."
     )
 

@@ -25,6 +25,9 @@ OCR, reglas, registro y un clasificador visual experimental, y devuelve
 | F8 | Pendiente | Evaluación integral con varias semillas y robustez |
 | F9 | En curso | Demo, model card, data card y Cap. IV |
 
+La model card está en [`docs/model_card_f4.md`](model_card_f4.md) y el data card
+del corpus v2 en [`docs/f4_corpus_v2.md`](f4_corpus_v2.md), secciones 1–2.
+
 ## 3. Demo en cinco minutos
 
 ### Antes de empezar

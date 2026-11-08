@@ -896,7 +896,9 @@ def _f4_tab(data: bytes | None, filename: str) -> None:
     with left:
         st.image(image, caption=filename or "documento", use_container_width=True)
     with right:
-        band = "Manipulado (score ≥ 0.50)" if score >= DEFAULT_THRESHOLD else "Sin indicio visual"
+        band = (
+            "Indicio visual (score ≥ 0.50)" if score >= DEFAULT_THRESHOLD else "Sin indicio visual"
+        )
         st.metric("Score F4", f"{score:.3f}", band)
         st.caption(
             "Salida de un EfficientNet-B0 de página entrenado con el corpus v2 "

@@ -77,11 +77,13 @@ make eval-f4
 ### Figuras para diapositivas
 
 ```bash
-make gradcam-f4
+make figures-f4    # curvas, matriz de confusión, recall por ataque y calibración
+make gradcam-f4    # TP, TN, FP y FN
 ```
 
-Genera TP, TN, FP y FN en `artifacts/models/f4/gradcam/` usando el fold 2, que
-es el de mejor PR-AUC de validación. Los casos son out-of-fold de ese fold.
+`figures-f4` deja cuatro PNGs en `artifacts/models/f4/figures/`. `gradcam-f4`
+genera los mapas de calor en `artifacts/models/f4/gradcam/` usando el fold 2,
+que es el de mejor PR-AUC de validación. Los casos son out-of-fold de ese fold.
 
 ## 4. Cifras que se pueden citar
 
@@ -203,7 +205,7 @@ CETPRO.
 - [ ] `make demo` abre en `localhost:8501`.
 - [ ] `artifacts/models/f4/fold_2.pt` existe.
 - [ ] `artifacts/models/f4/eval.md` y `eval.json` existen.
-- [ ] `make gradcam-f4` generó las figuras.
+- [ ] `make figures-f4` y `make gradcam-f4` generaron las figuras.
 - [ ] Las imágenes de demo son sintéticas y no contienen PII.
 - [ ] Capturas de respaldo de la demo y de `eval.md` por si falla el directo.
 - [ ] Cerrar otras aplicaciones que consuman CPU/GPU antes de la demo.

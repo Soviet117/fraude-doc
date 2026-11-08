@@ -6,7 +6,7 @@ TODAY ?= 2026-11-05
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell gpu demo test lint fmt lock synth synth-smoke synth-v2 validate-v2 folds-v2 train-f4 eval-f4 gradcam-f4 audit-samples ocr-samples eval-samples build clean
+.PHONY: help setup up down shell gpu demo test lint fmt lock synth synth-smoke synth-v2 validate-v2 folds-v2 train-f4 eval-f4 figures-f4 gradcam-f4 audit-samples ocr-samples eval-samples build clean
 
 help: ## Muestra los comandos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -71,6 +71,10 @@ train-f4: ## Entrena F4 con folds agrupados (ARGS="--epochs 12 --device cpu")
 eval-f4: ## Evalúa las predicciones out-of-fold y genera la tabla
 	uv run python -m fraude.models.evaluate --oof artifacts/models/f4/oof.jsonl \
 		--out artifacts/models/f4/eval.json --markdown artifacts/models/f4/eval.md
+
+figures-f4: ## Genera curvas, matriz de confusión, recall por ataque y calibración
+	uv run python -m fraude.models.report --metrics artifacts/models/f4/metrics.json \
+		--eval artifacts/models/f4/eval.json --out artifacts/models/f4/figures
 
 gradcam-f4: ## Genera Grad-CAM de TP/TN/FP/FN del fold con mejor PR-AUC
 	uv run python -m fraude.models.gradcam --checkpoint artifacts/models/f4/fold_2.pt \

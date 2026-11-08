@@ -111,8 +111,9 @@ make validate-v2
 make folds-v2
 make train-f4 ARGS="--epochs 12 --device cpu"
 make eval-f4
+make figures-f4
 make gradcam-f4
 ```
 
 Salidas en `artifacts/models/f4/`: checkpoints, `oof.jsonl`, `metrics.json`,
-`eval.md`, `eval.json` y `gradcam/`.
+`eval.md`, `eval.json`, `figures/` y `gradcam/`.

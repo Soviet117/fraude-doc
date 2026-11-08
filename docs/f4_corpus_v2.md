@@ -124,6 +124,7 @@ uv run python -m fraude.models.train --data data/synthetic/v2 \
 # Corrida completa (CPU o GPU)
 make train-f4 ARGS="--epochs 12 --device cpu"
 make eval-f4
+make figures-f4
 make gradcam-f4
 ```
 
@@ -147,6 +148,7 @@ Salidas en `artifacts/models/f4/`:
 | `oof.jsonl` | predicción out-of-fold por muestra |
 | `metrics.json` | configuración, historial, métricas por fold y agregadas |
 | `eval.md` | tabla legible de umbrales, calibración, ataques y folds |
+| `figures/` | curvas de entrenamiento, matriz de confusión, recall por ataque y calibración |
 | `gradcam/` | mapas de calor de TP, TN, FP y FN |
 
 ## 4. Protocolo de evaluación

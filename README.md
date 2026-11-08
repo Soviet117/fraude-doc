@@ -62,6 +62,7 @@ make validate-v2    # valida hashes, balance y particiones del corpus v2
 make folds-v2       # folds agrupados de 5 vías por persona
 make train-f4       # entrena F4 (ARGS="--epochs 12 --device cpu")
 make eval-f4        # métricas OOF, calibración y umbrales
+make figures-f4     # curvas, matriz de confusión, recall y calibración
 make gradcam-f4     # mapas de calor de TP/TN/FP/FN
 ```
 

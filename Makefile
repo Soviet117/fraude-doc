@@ -6,7 +6,7 @@ TODAY ?= 2026-11-05
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell gpu demo test lint fmt lock synth synth-smoke synth-v2 validate-v2 folds-v2 train-f4 eval-f4 figures-f4 gradcam-f4 train-f5 eval-f5 figures-f5 pipeline-v2 eval-f6 features-f7 train-f7 audit-samples ocr-samples eval-samples build clean
+.PHONY: help setup up down shell gpu demo demo-local test lint fmt lock synth synth-smoke synth-v2 validate-v2 folds-v2 train-f4 eval-f4 figures-f4 gradcam-f4 train-f5 eval-f5 figures-f5 pipeline-v2 eval-f6 features-f7 train-f7 figures-f7 diagrams audit-samples ocr-samples eval-samples build clean
 
 help: ## Muestra los comandos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -30,6 +30,10 @@ gpu: ## Abre una shell con GPU (solo laboratorio)
 
 demo: ## Ejecuta la demo Streamlit en localhost:8501
 	$(COMPOSE) exec dev streamlit run apps/demo/app.py \
+		--server.address 0.0.0.0 --server.port 8501
+
+demo-local: ## Ejecuta la demo Streamlit sin Docker (host con extra ml)
+	uv run streamlit run apps/demo/app.py \
 		--server.address 0.0.0.0 --server.port 8501
 
 test: ## Ejecuta las pruebas
@@ -106,6 +110,15 @@ features-f7: ## Construye la tabla de características de F7 desde F3-F6
 
 train-f7: ## Entrena y evalúa la fusión calibrada F7
 	uv run python -m fraude.fusion.train
+
+figures-f7: ## Genera ROC/PR, confusión, calibración, umbrales, ablaciones y SHAP
+	MPLCONFIGDIR=.cache/mpl uv run python -m fraude.fusion.report \
+		--metrics artifacts/models/f7/metrics.json \
+		--oof artifacts/models/f7/oof.jsonl \
+		--out artifacts/models/f7/figures
+
+diagrams: ## Genera casos de uso, arquitectura, ER y flujo del pipeline
+	MPLCONFIGDIR=.cache/mpl uv run python scripts/diagrams.py
 
 audit-samples: ## Audita el corpus local y ejecuta calidad/forense sin OCR
 	uv run python -m fraude.eval.corpus_audit $(SAMPLES) \

@@ -1,68 +1,42 @@
-"""Pruebas de las figuras reproducibles de F4."""
+"""Pruebas del informe PDF."""
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
-import pytest
+from PIL import Image
 
-pytest.importorskip("matplotlib")
-
-from fraude.models.report import generate_all
+from fraude.report import build_report
 
 
-def _metrics() -> dict[str, Any]:
-    return {
-        "folds": [
-            {
-                "fold": 0,
-                "best_epoch": 2,
-                "history": [
-                    {
-                        "epoch": 1,
-                        "train_loss": 1.0,
-                        "val_loss": 1.1,
-                        "val_pr_auc": 0.5,
-                    },
-                    {
-                        "epoch": 2,
-                        "train_loss": 0.8,
-                        "val_loss": 0.9,
-                        "val_pr_auc": 0.7,
-                    },
-                ],
-            }
-        ]
-    }
-
-
-def _eval() -> dict[str, Any]:
-    return {
-        "pooled": {"n": 4, "tn": 1, "fp": 1, "fn": 1, "tp": 1},
-        "by_attack_base": {
-            "T1": {"n": 1, "recall": 0.0},
-            "T2": {"n": 1, "recall": 1.0},
-            "authentic": {"n": 2, "recall": 0.0},
+def test_build_report_creates_pdf(tmp_path: Path) -> None:
+    overlay = tmp_path / "overlay.png"
+    Image.new("RGB", (80, 110), (220, 220, 220)).save(overlay)
+    analysis = {
+        "created_at": "2026-11-10T12:00:00+00:00",
+        "observation": {
+            "document_id": "sha256:" + "d" * 64,
+            "source": {"filename": "dni.png"},
+            "doctype": {"label": "dni"},
+            "fields": {"dni": "12345678", "nombres": "José"},
         },
-        "calibration": {
-            "reliability_raw": [
-                {"confidence": 0.2, "accuracy": 0.0},
-                {"confidence": 0.8, "accuracy": 1.0},
-            ],
-            "reliability_calibrated": [
-                {"confidence": 0.3, "accuracy": 0.0},
-                {"confidence": 0.7, "accuracy": 1.0},
+        "fusor": {
+            "p_fake": 0.91,
+            "risk": "alto",
+            "calibration_method": "identity",
+            "evidences": [
+                {"severity": "alta", "message": "El nombre difiere del registro."},
+                {"severity": "media", "message": "La señal visual F4 es alta."},
             ],
         },
+        "explanation": {"text": "Indicios para revisión humana.", "source": "template"},
+        "f5": {"overlay_path": str(overlay)},
+        "model_versions": {"f4": "fold_2", "f7": "fusion"},
+        "timings_ms": {"total_ms": 1200},
     }
 
+    output = build_report(analysis, tmp_path / "informe.pdf")
 
-def test_generate_all_creates_four_pngs(tmp_path: Path) -> None:
-    paths = generate_all(_metrics(), _eval(), tmp_path)
-
-    assert len(paths) == 4
-    for path in paths:
-        assert path.exists()
-        assert path.suffix == ".png"
-        assert path.stat().st_size > 0
+    assert output.is_file()
+    assert output.stat().st_size > 2000
+    assert output.read_bytes().startswith(b"%PDF")

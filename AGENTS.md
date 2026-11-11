@@ -39,20 +39,25 @@ Si hay conflicto entre una instrucción suelta y el plan, **gana el plan**, salv
 
 ## 3. Estado actual del repositorio
 
-**F0–F4 cerrados en el entorno local; F5–F9 pendientes.** El repositorio ya contiene:
+**F0–F7 cerradas en el entorno local; F8 parcial; F9 en curso.** El repositorio ya contiene:
 
 - `pyproject.toml` + `uv.lock` (Python 3.13, deps core y extra `ml`).
 - `Dockerfile`, `compose.yaml`, `Makefile`, `.pre-commit-config.yaml`, CI en `.github/workflows/ci.yml`.
-- `src/fraude/core/schemas.py` con el contrato `Observation`.
-- Ingesta, calidad, forense clásico, OCR docTR, extracción, reglas, registro y pipeline integrado (F2–F3).
+- `src/fraude/core/schemas.py` con el contrato `Observation` (congelado).
+- Ingesta, calidad, forense clásico, OCR docTR, extracción, reglas, registro y pipeline F3.
 - Dataset sintético v1 (`data/muestras`), corpus v2 de 50 documentos base y 300 imágenes con manifiestos, validación y folds agrupados (F1–F2).
-- `src/fraude/models/` con F4 experimental: EfficientNet-B0 de página, entrenamiento con folds agrupados, evaluación OOF, calibración, Grad-CAM e inferencia.
-- `apps/demo/app.py` (Streamlit) con pestañas de análisis heurístico, F4 experimental y estado de fases.
-- `docs/` con guía de anotación, línea base F3, auditoría/OCR de muestras, `f4_corpus_v2.md` con resultados y límites, y `presentacion.md` con el guion de sustentación.
+- `src/fraude/models/` con F4 (EfficientNet-B0 de página, OOF, Grad-CAM) y F5 (U-Net de localización, evaluación Pixel-F1/IoU, figuras).
+- `src/fraude/nlp/` con F6: normalización, semántica, duplicados, explicación por plantilla y Ollama con fallback.
+- `src/fraude/fusion/` con F7: 62 features, LightGBM, calibración identidad/isotónica/Platt, ablaciones, SHAP, inferencia.
+- `src/fraude/pipeline/full.py`: pipeline integral F3+F4+F5+F6+F7, mapa F5, explicación y metadatos.
+- `src/fraude/store/history.py` (SQLite: documentos, análisis y feedback) y `src/fraude/report/pdf.py` (informe PDF).
+- `apps/demo/app.py` (Streamlit) con pestañas de análisis integral, F3, F4, historial y fases.
+- `docs/` con el plan, guía de anotación, línea base F3, auditoría/OCR de muestras, F4/F5/F6/F7, model cards F4/F7, `cap4_resultados.md`, `diagramas.md`, `manual_demo.md` y `presentacion.md`.
+- `scripts/diagrams.py` y figuras en `docs/figuras/`.
 
 La imagen Docker incluye el grupo `dev`, por lo que `make test` y `make lint` funcionan dentro del contenedor. **Pendiente de F0:** verificar la misma imagen en la laptop del compañero y en el laboratorio (SSH + `nvidia-smi`).
 
-**Pendiente de F5–F9:** localización/parches, rama semántica, fusión calibrada, evaluación integral con varias semillas y cierre de demo/Cap. IV. No asumas que esas piezas existen: verifica antes de ejecutar. Los datos y artefactos (`data/`, `artifacts/`) están ignorados por git y no se versionan.
+**Pendiente de F8/F9:** F8 parcial (faltan varias semillas, robustez, McNemar, kappa y pre/post); F9 en curso (demo, PDF, SQLite y diagramas listos; falta cerrar el Cap. IV y el etiquetado `v1.0`). Los datos y artefactos (`data/`, `artifacts/`) están ignorados por git y no se versionan. No asumas que F8 está cerrada: verifica antes de citar métricas como definitivas.
 
 ---
 

@@ -174,7 +174,7 @@ def test_predict_fusion_returns_calibrated_risk_and_evidence() -> None:
             "feature_names": list(FEATURE_NAMES),
         },
         f4_score=0.8,
-        f5_summary={"max_prob": 0.7, "mean_prob": 0.01, "area_fraction": 0.002},
+        f5_summary={"max_prob": 0.97, "mean_prob": 0.2, "area_fraction": 0.2},
         semantic=semantic,
     )
 

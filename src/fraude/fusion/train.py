@@ -23,10 +23,10 @@ from fraude.eval.metrics import (
     bootstrap_ci,
     ranking_metrics,
 )
+from fraude.fusion.calibration import cross_fitted_calibration, fit_calibrator
 from fraude.fusion.features import FEATURE_GROUPS, FEATURE_NAMES
 from fraude.models.evaluate import (
     brier_score,
-    cross_fitted_isotonic,
     expected_calibration_error,
     select_threshold_with_fpr,
     threshold_table,
@@ -80,10 +80,14 @@ def _make_model(cfg: FusionConfig) -> LGBMClassifier:
         max_depth=cfg.max_depth,
         min_child_samples=cfg.min_child_samples,
         subsample=0.9,
+        subsample_freq=1,
         colsample_bytree=0.9,
         reg_lambda=1.0,
         class_weight="balanced",
         random_state=cfg.seed,
+        bagging_seed=cfg.seed,
+        feature_fraction_seed=cfg.seed,
+        data_random_seed=cfg.seed,
         n_jobs=4,
         verbosity=-1,
         deterministic=True,
@@ -175,9 +179,42 @@ def train_fusion(cfg: FusionConfig) -> dict[str, Any]:
     labels = _labels(oof)
     raw_scores = [float(row["raw_score"]) for row in oof]
     folds = [int(row["fold"]) for row in oof]
-    calibrated = cross_fitted_isotonic(labels, raw_scores, folds)
+    isotonic_values = cross_fitted_calibration(labels, raw_scores, folds, method="isotonic")
+    platt_values = cross_fitted_calibration(labels, raw_scores, folds, method="platt")
+    calibration = {
+        "identity": {
+            "brier": round(brier_score(labels, raw_scores), 4),
+            "ece": round(expected_calibration_error(labels, raw_scores), 4),
+        },
+        "isotonic_cross_fitted": {
+            "brier": round(brier_score(labels, isotonic_values), 4),
+            "ece": round(expected_calibration_error(labels, isotonic_values), 4),
+        },
+        "platt_cross_fitted": {
+            "brier": round(brier_score(labels, platt_values), 4),
+            "ece": round(expected_calibration_error(labels, platt_values), 4),
+        },
+    }
+    calibration_method = min(
+        ("identity", "isotonic", "platt"),
+        key=lambda name: (
+            calibration["identity"]["brier"]
+            if name == "identity"
+            else calibration[f"{name}_cross_fitted"]["brier"],
+            calibration["identity"]["ece"]
+            if name == "identity"
+            else calibration[f"{name}_cross_fitted"]["ece"],
+        ),
+    )
+    calibration["chosen"] = calibration_method
+    calibrated = {
+        "identity": raw_scores,
+        "isotonic": isotonic_values,
+        "platt": platt_values,
+    }[calibration_method]
     for row, value in zip(oof, calibrated, strict=True):
         row["calibrated_score"] = round(float(value), 6)
+        row["calibration_method"] = calibration_method
 
     raw_predictions = [1 if score >= 0.5 else 0 for score in raw_scores]
     calibrated_predictions = [1 if score >= 0.5 else 0 for score in calibrated]
@@ -201,23 +238,10 @@ def train_fusion(cfg: FusionConfig) -> dict[str, Any]:
         calibrated,
         max_fpr=cfg.max_fpr,
     )
-    calibration = {
-        "raw": {
-            "brier": round(brier_score(labels, raw_scores), 4),
-            "ece": round(expected_calibration_error(labels, raw_scores), 4),
-        },
-        "isotonic_cross_fitted": {
-            "brier": round(brier_score(labels, calibrated), 4),
-            "ece": round(expected_calibration_error(labels, calibrated), 4),
-        },
-    }
 
     final_model = _make_model(cfg)
     final_model.fit(_matrix(rows, FEATURE_NAMES), _labels(rows))
-    from sklearn.isotonic import IsotonicRegression
-
-    calibrator = IsotonicRegression(out_of_bounds="clip")
-    calibrator.fit(raw_scores, labels)
+    calibrator = fit_calibrator(calibration_method, raw_scores, labels)
 
     contributions = final_model.booster_.predict(
         _matrix(rows, FEATURE_NAMES),
@@ -240,6 +264,7 @@ def train_fusion(cfg: FusionConfig) -> dict[str, Any]:
         {
             "model": final_model,
             "calibrator": calibrator,
+            "calibration_method": calibration_method,
             "feature_names": list(FEATURE_NAMES),
             "config": {
                 **asdict(cfg),
@@ -266,6 +291,7 @@ def train_fusion(cfg: FusionConfig) -> dict[str, Any]:
         "confidence_intervals": confidence_intervals,
         "thresholds": thresholds,
         "calibration": calibration,
+        "calibration_method": calibration_method,
         "by_attack": _group_metrics(oof, "attack", score_key="raw_score"),
         "by_attack_calibrated": _group_metrics(oof, "attack", score_key="calibrated_score"),
         "by_document_type": _group_metrics(oof, "document_type", score_key="raw_score"),
@@ -333,10 +359,13 @@ def write_markdown(result: dict[str, Any], path: Path) -> Path:
             "",
             "| Versión | Brier | ECE |",
             "|---|---:|---:|",
-            f"| Cruda | {result['calibration']['raw']['brier']} | "
-            f"{result['calibration']['raw']['ece']} |",
+            f"| Identidad (score crudo) | {result['calibration']['identity']['brier']} | "
+            f"{result['calibration']['identity']['ece']} |",
             f"| Isotónica cruzada | {result['calibration']['isotonic_cross_fitted']['brier']} | "
             f"{result['calibration']['isotonic_cross_fitted']['ece']} |",
+            f"| Platt cruzada | {result['calibration']['platt_cross_fitted']['brier']} | "
+            f"{result['calibration']['platt_cross_fitted']['ece']} |",
+            f"| **Elegida** | **{result['calibration']['chosen']}** | |",
             "",
             "## Ablaciones acumulativas",
             "",

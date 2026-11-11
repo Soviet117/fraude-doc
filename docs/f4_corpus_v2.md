@@ -6,6 +6,11 @@ se evalúa. Las secciones 1–2 hacen de **data card**; la model card resumida e
 en [`docs/model_card_f4.md`](model_card_f4.md). **No sustituye** la validación
 con documentos reales del CETPRO ni la localización de F5.
 
+> **Actualización (2026-11-10):** F5, F6 y F7 ya están implementados y
+> evaluados sobre este corpus. Ver [`f5_localizacion.md`](f5_localizacion.md),
+> [`f6_semantica.md`](f6_semantica.md) y [`f7_fusion.md`](f7_fusion.md).
+> Este documento conserva los resultados y límites de F4.
+
 ## 1. Composición
 
 | Concepto | Cantidad |

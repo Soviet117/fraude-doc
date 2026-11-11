@@ -1,20 +1,23 @@
-"""Demo Streamlit — capa de presentación del prototipo.
+"""Demo Streamlit — capa de presentación del prototipo integral.
 
-Fase F3: selección de una muestra del corpus local o subida de un documento,
-calidad, forense clásico, OCR, extracción, reglas y cruce con registro. La
-fusión calibrada y la explicación con LLM llegan en F6-F7.
+Pestaña principal: F3 (calidad, forense, OCR, extracción, reglas y registro) +
+F4 (clasificador de página) + F5 (localización) + F6 (semántica y duplicados) +
+F7 (fusión calibrada), con evidencias SHAP, explicación, historial SQLite y
+exportación PDF/JSON. Las pestañas F3 y F4 conservan la lectura por señal.
 
-La banda que se muestra es heurística y no calibrada: sirve para priorizar
-revisión humana, no para rechazar documentos ni para afirmar probabilidades.
+La banda de F3 es heurística; la de la pestaña integral sale de F7. Ninguna
+decisión es automática: el sistema prioriza la revisión humana.
 """
 
 from __future__ import annotations
 
 import csv
+import hashlib
 import html
+import json
 import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -22,14 +25,24 @@ import streamlit as st
 
 from fraude.core.schemas import Observation, RuleFinding, Severity, SignalScore
 from fraude.eval.baseline import SEVERITY_WEIGHTS, score_findings
+from fraude.pipeline.full import analyze_full
 from fraude.pipeline.run import analyze_bytes
+from fraude.registry.build import build_registry_from_manifest
 from fraude.registry.cross import RegistryEntry
+from fraude.report import build_report
 from fraude.rules.engine import REQUIRED_FIELDS
+from fraude.store import HistoryStore
 
 SAMPLE_ROOT = Path("data/muestras")
 SAMPLE_INDEX = SAMPLE_ROOT / "_indice.csv"
 SAMPLE_PEOPLE = SAMPLE_ROOT / "_personas.csv"
+V2_ROOT = Path("data/synthetic/v2")
+HISTORY_DB = Path("artifacts/history.db")
+REPORTS_DIR = Path("artifacts/reports")
+RUNS_DIR = Path("artifacts/runs")
 F4_CHECKPOINT = Path("artifacts/models/f4/fold_2.pt")
+F5_CHECKPOINT = Path("artifacts/models/f5/fold_0.pt")
+F7_MODEL = Path("artifacts/models/f7/fusion.joblib")
 DEFAULT_THRESHOLD = 0.5
 IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"})
 
@@ -156,14 +169,30 @@ PHASES = [
         "Entregable": "Modelo visual de documento",
         "Estado": "Cerrado experimental: detecta T5/T6; T1-T4 quedan para F5",
     },
-    {"Fase": "F5", "Entregable": "Localización y explicabilidad", "Estado": "Pendiente"},
-    {"Fase": "F6", "Entregable": "Rama semántica y NLP", "Estado": "Pendiente"},
-    {"Fase": "F7", "Entregable": "Fusión y calibración", "Estado": "Pendiente"},
-    {"Fase": "F8", "Entregable": "Evaluación integral", "Estado": "Pendiente"},
+    {
+        "Fase": "F5",
+        "Entregable": "Localización y explicabilidad",
+        "Estado": "Cerrado experimental: U-Net 128 px; fuerte en T5/T6, limitado en T1-T4",
+    },
+    {
+        "Fase": "F6",
+        "Entregable": "Rama semántica y NLP",
+        "Estado": "Cerrado experimental: semántica, duplicados, plantilla y LLM con fallback",
+    },
+    {
+        "Fase": "F7",
+        "Entregable": "Fusión y calibración",
+        "Estado": "Cerrado experimental: LightGBM + calibración; F1 0.898 OOF",
+    },
+    {
+        "Fase": "F8",
+        "Entregable": "Evaluación integral",
+        "Estado": "Parcial: OOF, IC bootstrap y ablaciones; faltan semillas, robustez y kappa",
+    },
     {
         "Fase": "F9",
         "Entregable": "Demo final y Cap. IV",
-        "Estado": "En curso: demo, model card y guía de presentación",
+        "Estado": "En curso: demo integral, SQLite, PDF, diagramas y documentación",
     },
 ]
 
@@ -378,6 +407,65 @@ def _load_people(path_str: str) -> tuple[tuple[str, ...], ...]:
         for row in rows
         if _text(row.get("apellidos")) or _text(row.get("nombres"))
     )
+
+
+@st.cache_data(show_spinner=False)
+def _load_v2_samples(root_str: str) -> list[dict[str, str]]:
+    """Carga los 50 documentos base del corpus v2 con claves compatibles con v1."""
+    root = Path(root_str)
+    rows: list[dict[str, str]] = []
+    for name in ("manifest.jsonl", "attacks_manifest.jsonl"):
+        path = root / name
+        if not path.is_file():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            regions = record.get("regions") or []
+            first = regions[0] if regions else {}
+            rows.append(
+                {
+                    "id": str(record.get("sample_id", "")),
+                    "tipo": str(record.get("document_type", "")),
+                    "variante": str(record.get("variant", "")),
+                    "ataque": str(record.get("primary_attack") or ""),
+                    "persona": str(record.get("source_id", "")),
+                    "documento_padre": str(record.get("parent_id") or ""),
+                    "campo_original": str(first.get("original_value") or ""),
+                    "campo_alterado": str(first.get("altered_value") or ""),
+                    "png": str(record.get("image_path", "")),
+                    "mascara": (record.get("mask_paths") or [""])[0],
+                    "bbox_px": "",
+                    "sha256_png": str(record.get("document_id", "")).removeprefix("sha256:"),
+                }
+            )
+    return sorted(rows, key=lambda row: row["id"])
+
+
+@st.cache_data(show_spinner=False)
+def _v2_registry_rows(root_str: str) -> tuple[tuple[str, ...], ...]:
+    """Convierte el registro v2 al formato de filas que usa la demo."""
+    path = Path(root_str) / "manifest.jsonl"
+    if not path.is_file():
+        return ()
+    entries = build_registry_from_manifest(path)
+    rows: list[tuple[str, ...]] = []
+    for entry in entries:
+        apellidos, _, nombres = entry.nombre.partition(", ")
+        rows.append(
+            (
+                apellidos,
+                nombres,
+                entry.dni or "",
+                entry.programa or "",
+                entry.modulo or "",
+                entry.periodo or "",
+                entry.fecha_nacimiento or "",
+                entry.source_id or "",
+            )
+        )
+    return tuple(rows)
 
 
 @st.cache_data(show_spinner=False)
@@ -720,16 +808,16 @@ def _kv_table(rows: list[tuple[str, str]]) -> str:
 def _hero() -> None:
     st.markdown(
         '<div class="hero">'
-        '<div class="kicker">Prototipo de investigación · Fase F3</div>'
+        '<div class="kicker">Prototipo de investigación · F3 + F4 + F5 + F6 + F7</div>'
         "<h1>Verificador documental <span>CETPRO San Agustín</span></h1>"
         "<p>Calidad de imagen, forense clásico, OCR, extracción de campos, reglas "
-        "semánticas y cruce con registro. Cada resultado se acompaña de evidencias "
-        "explicables y prioriza la revisión humana.</p>"
+        "semánticas, clasificación visual, localización y fusión calibrada. Cada "
+        "resultado se acompaña de evidencias explicables y prioriza la revisión humana.</p>"
         '<div class="badges">'
-        '<span class="badge">Corpus sintético de 20 documentos</span>'
-        '<span class="badge">Score heurístico, no calibrado</span>'
+        '<span class="badge">Corpus sintético v2 · 50 documentos</span>'
+        '<span class="badge">Fusión F7 calibrada</span>'
+        '<span class="badge">Historial SQLite</span>'
         '<span class="badge">Sin decisión automática</span>'
-        '<span class="badge">Datos locales</span>'
         "</div></div>",
         unsafe_allow_html=True,
     )
@@ -773,7 +861,7 @@ def _landing(sample_rows: list[dict[str, str]], people_rows: tuple[tuple[str, ..
 
     st.markdown(
         '<div class="section-title"><h3>Corpus disponible</h3>'
-        "<span>documentos generados por IA en data/muestras</span></div>",
+        "<span>documentos generados por IA en data/synthetic/v2 y data/muestras</span></div>",
         unsafe_allow_html=True,
     )
     authentic = sum(_text(row.get("variante")) == "authentic" for row in sample_rows)
@@ -781,7 +869,7 @@ def _landing(sample_rows: list[dict[str, str]], people_rows: tuple[tuple[str, ..
     col_a, col_b, col_c, col_d = st.columns(4)
     with col_a:
         st.markdown(
-            _metric_card("Documentos", str(len(sample_rows)), "PNG de 300 dpi", "#0B2545"),
+            _metric_card("Documentos", str(len(sample_rows)), "lote seleccionado", "#0B2545"),
             unsafe_allow_html=True,
         )
     with col_b:
@@ -807,12 +895,13 @@ def _landing(sample_rows: list[dict[str, str]], people_rows: tuple[tuple[str, ..
     )
     st.markdown(
         '<div class="empty-state">'
-        "<strong>La banda es heurística.</strong> Se calcula sumando pesos por severidad "
-        "de las reglas activadas; el umbral de referencia es 0.50. No es una probabilidad "
-        "calibrada y no sustituye la revisión de una persona. "
-        "<br><br><strong>Una señal no es una condena.</strong> Los metadatos de edición, "
-        "los campos faltantes o una diferencia de registro deben interpretarse junto con "
-        "el resto de evidencias. La calibración y la fusión llegan en F6-F7."
+        "<strong>La banda de F3 es heurística.</strong> Se calcula sumando pesos por "
+        "severidad de las reglas activadas; el umbral de referencia es 0.50. No es una "
+        "probabilidad calibrada y no sustituye la revisión de una persona. "
+        "<br><br><strong>La pestaña integral usa F7.</strong> Combina reglas, forense, "
+        "OCR, registro, semántica, F4 y F5 con un modelo LightGBM y una calibración "
+        "elegida por validación cruzada. Sigue siendo una prueba de viabilidad sobre "
+        "datos sintéticos, no una probabilidad institucional de fraude."
         "</div>",
         unsafe_allow_html=True,
     )
@@ -899,7 +988,7 @@ def _f4_tab(data: bytes | None, filename: str) -> None:
 
     left, right = st.columns([1, 1.15], gap="large")
     with left:
-        st.image(image, caption=filename or "documento", use_container_width=True)
+        st.image(image, caption=filename or "documento", width="stretch")
     with right:
         band = (
             "Indicio visual (score ≥ 0.50)" if score >= DEFAULT_THRESHOLD else "Sin indicio visual"
@@ -916,7 +1005,7 @@ def _f4_tab(data: bytes | None, filename: str) -> None:
         st.image(
             heatmap,
             caption=f"Grad-CAM · score {heat_score:.3f}",
-            use_container_width=True,
+            width="stretch",
         )
     st.caption(
         "El mapa de calor es una ayuda cualitativa: F4 clasifica la página completa, "
@@ -1156,36 +1245,75 @@ def _ground_truth(
         else:
             st.info("Sin OCR o calidad suficiente: no se compara automáticamente con la etiqueta.")
         st.caption(
-            "Esta comparación solo tiene sentido para el lote sintético de 20 muestras; "
+            "Esta comparación solo tiene sentido para el corpus sintético; "
             "no es una estimación de desempeño institucional."
         )
 
 
 def _sidebar(
     sample_rows: list[dict[str, str]],
-    people_rows: tuple[tuple[str, ...], ...],
-) -> tuple[bytes | None, str, dict[str, str] | None, tuple[tuple[str, ...], ...]]:
+    v2_rows: list[dict[str, str]],
+) -> tuple[
+    bytes | None,
+    str,
+    dict[str, str] | None,
+    tuple[tuple[str, ...], ...],
+    Path | None,
+]:
     with st.sidebar:
         st.markdown(
             '<div class="sidebar-brand">'
             '<div class="brand-kicker">CETPRO San Agustín</div>'
             '<div class="brand-title">Verificador documental</div>'
-            '<div class="brand-sub">Prototipo F3 · corpus sintético</div>'
+            '<div class="brand-sub">Prototipo integral · F3-F7</div>'
             "</div>",
             unsafe_allow_html=True,
         )
 
         source = st.radio(
             "Origen del documento",
-            ("Muestra del corpus", "Subir archivo"),
-            help="Las muestras son los 20 documentos generados por IA en data/muestras.",
+            (
+                "Corpus v2 · 50 documentos (F4/F5/F7)",
+                "Corpus v1 · 20 muestras (T1-T8)",
+                "Subir archivo",
+            ),
+            help=(
+                "El corpus v2 es el que entrena F4/F5/F7; el corpus v1 conserva "
+                "una muestra por ataque T1-T8 para la demostración."
+            ),
         )
 
         data: bytes | None = None
         filename = ""
         selected_row: dict[str, str] | None = None
+        data_root: Path | None = None
 
-        if source == "Muestra del corpus":
+        if source.startswith("Corpus v2"):
+            if v2_rows:
+                labels = [
+                    f"{row['id']} · {DOCUMENT_LABELS.get(row['tipo'], row['tipo'])}"
+                    f" · {row['ataque'] or 'auténtico'}"
+                    for row in v2_rows
+                ]
+                selected = st.selectbox(
+                    "Documento",
+                    labels,
+                    help="Documentos base del corpus v2; las aumentaciones no se listan.",
+                )
+                selected_row = v2_rows[labels.index(selected)]
+                path = V2_ROOT / _text(selected_row.get("png"))
+                if path.is_file():
+                    data = path.read_bytes()
+                    filename = path.name
+                    data_root = V2_ROOT
+                else:
+                    st.error(f"No se encontró la imagen: {path}")
+            else:
+                st.warning(
+                    "No se encontró el corpus v2. Genéralo con `make synth-v2`, "
+                    "`make validate-v2` y `make folds-v2`."
+                )
+        elif source.startswith("Corpus v1"):
             if sample_rows:
                 labels = [
                     f"{row['id']} · {DOCUMENT_LABELS.get(row['tipo'], row['tipo'])}"
@@ -1194,13 +1322,14 @@ def _sidebar(
                 selected = st.selectbox(
                     "Muestra",
                     labels,
-                    help="Selecciona un documento del lote para analizarlo con el pipeline completo.",
+                    help="20 muestras del corpus v1, una por ataque T1-T8.",
                 )
                 selected_row = sample_rows[labels.index(selected)]
                 path = SAMPLE_ROOT / _text(selected_row.get("png"))
                 if path.is_file():
                     data = path.read_bytes()
                     filename = path.name
+                    data_root = SAMPLE_ROOT
                 else:
                     st.error(f"No se encontró la imagen: {path}")
             else:
@@ -1221,9 +1350,17 @@ def _sidebar(
         use_registry = st.toggle(
             "Cruzar con registro sintético",
             value=True,
-            help="Compara los campos extraídos con las 12 personas ficticias de _personas.csv.",
+            help=(
+                "Compara los campos extraídos con el espejo del CETPRO. "
+                "Para v2 se usan las 10 personas del manifiesto; para v1, las 12 de _personas.csv."
+            ),
         )
-        registry_rows = people_rows if use_registry else ()
+        if not use_registry:
+            registry_rows: tuple[tuple[str, ...], ...] = ()
+        elif source.startswith("Corpus v1"):
+            registry_rows = _load_people(str(SAMPLE_PEOPLE))
+        else:
+            registry_rows = _v2_registry_rows(str(V2_ROOT))
 
         st.divider()
         st.markdown("**Lectura del resultado**")
@@ -1234,8 +1371,8 @@ def _sidebar(
             unsafe_allow_html=True,
         )
         st.caption(
-            "La banda suma pesos por severidad y usa 0.50 como referencia. "
-            "No es una probabilidad calibrada."
+            "La pestaña integral usa la fusión F7 (score + banda). Las pestañas "
+            "F3 y F4 muestran las señales por separado. Ninguna decisión es automática."
         )
         st.markdown("**Principios**")
         st.markdown(
@@ -1246,7 +1383,388 @@ def _sidebar(
         st.divider()
         st.caption("Fuente de verdad: `plan-sistema-fraude-documental.md`")
 
-    return data, filename, selected_row, registry_rows
+    return data, filename, selected_row, registry_rows, data_root
+
+
+RISK_UI = {
+    "bajo": ("Riesgo bajo", "#1B7F3B", "🟢"),
+    "medio": ("Riesgo medio", "#B26A00", "🟠"),
+    "alto": ("Riesgo alto", "#B3261E", "🔴"),
+    "indeterminado": ("Sin determinar", "#5F6B7A", "⚪"),
+}
+
+
+def _analysis_key(
+    data: bytes,
+    filename: str,
+    selected_row: dict[str, str] | None,
+    registry_rows: tuple[tuple[str, ...], ...],
+    use_llm: bool,
+) -> str:
+    digest = hashlib.sha256(data).hexdigest()[:16]
+    sample = _text((selected_row or {}).get("id"))
+    return f"{digest}:{filename}:{sample}:{len(registry_rows)}:{int(use_llm)}"
+
+
+def _cached_entry(
+    data: bytes,
+    filename: str,
+    selected_row: dict[str, str] | None,
+    registry_rows: tuple[tuple[str, ...], ...],
+) -> dict[str, Any] | None:
+    """Reutiliza el análisis integral ya calculado para evitar repetir OCR."""
+    digest = hashlib.sha256(data).hexdigest()[:16]
+    sample = _text((selected_row or {}).get("id"))
+    prefix = f"{digest}:{filename}:{sample}:{len(registry_rows)}:"
+    cache: dict[str, Any] = st.session_state.get("integral_cache", {})
+    for key, entry in cache.items():
+        if key.startswith(prefix):
+            return entry
+    return None
+
+
+def _run_integral(
+    data: bytes,
+    filename: str,
+    selected_row: dict[str, str] | None,
+    registry_rows: tuple[tuple[str, ...], ...],
+    *,
+    use_llm: bool,
+    force: bool = False,
+) -> dict[str, Any]:
+    key = _analysis_key(data, filename, selected_row, registry_rows, use_llm)
+    cache: dict[str, Any] = st.session_state.setdefault("integral_cache", {})
+    if force:
+        cache.pop(key, None)
+    if key in cache:
+        return cache[key]
+
+    registry = [_entry_from_row(row) for row in registry_rows] or None
+    with st.spinner("Analizando calidad, forense, OCR, reglas, F4, F5, F6 y F7…"):
+        result = analyze_full(
+            data,
+            filename=filename,
+            registry=registry,
+            data_dir=V2_ROOT,
+            artifacts_dir=RUNS_DIR,
+            exclude_sample_id=_text((selected_row or {}).get("id")) or None,
+            use_llm=use_llm,
+            today=date.today(),
+            f4_checkpoint=F4_CHECKPOINT,
+            f5_checkpoint=F5_CHECKPOINT,
+            f7_model=F7_MODEL,
+        )
+    payload = result.to_dict()
+    payload["created_at"] = datetime.now(UTC).isoformat()
+
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    pdf_path = REPORTS_DIR / f"{payload['document_id'].removeprefix('sha256:')[:16]}.pdf"
+    try:
+        build_report(payload, pdf_path)
+    except Exception as exc:  # pragma: no cover - defensa para la demo
+        st.warning(f"No se pudo generar el PDF: {exc}")
+        pdf_path = None
+
+    analysis_id = None
+    try:
+        with HistoryStore(HISTORY_DB) as store:
+            analysis_id = store.save_analysis(payload)
+    except Exception as exc:  # pragma: no cover
+        st.warning(f"No se pudo guardar en el historial: {exc}")
+
+    entry = {
+        "payload": payload,
+        "pdf": str(pdf_path) if pdf_path is not None else None,
+        "analysis_id": analysis_id,
+    }
+    cache[key] = entry
+    return entry
+
+
+def _integrated_tab(
+    data: bytes | None,
+    filename: str,
+    selected_row: dict[str, str] | None,
+    registry_rows: tuple[tuple[str, ...], ...],
+) -> None:
+    st.markdown(
+        '<div class="section-title"><h3>Análisis integral</h3>'
+        "<span>calidad → forense → OCR/reglas → F4 → F5 → F6 → F7</span></div>",
+        unsafe_allow_html=True,
+    )
+    if data is None:
+        st.info("Selecciona un documento del corpus o sube una imagen en la barra lateral.")
+        return
+
+    controls = st.columns([1.2, 1.2, 2.6])
+    with controls[0]:
+        use_llm = st.toggle(
+            "Explicación con Ollama",
+            value=False,
+            help="Si Ollama no responde, se usa la plantilla local. El LLM nunca decide.",
+        )
+    with controls[1]:
+        force = st.button("Volver a analizar", width="stretch")
+    with controls[2]:
+        st.caption(
+            "El score F7 se presenta con su banda. No es una probabilidad institucional "
+            "de fraude y no reemplaza la revisión humana."
+        )
+
+    entry = _run_integral(
+        data,
+        filename,
+        selected_row,
+        registry_rows,
+        use_llm=use_llm,
+        force=force,
+    )
+    payload = entry["payload"]
+    observation = Observation.model_validate(payload["observation"])
+    fusor = payload.get("fusor") or {}
+    risk = str(fusor.get("risk") or "indeterminado")
+    label, color, icon = RISK_UI.get(risk, RISK_UI["indeterminado"])
+    p_fake = fusor.get("p_fake")
+    raw_score = fusor.get("raw_score")
+    method = fusor.get("calibration_method") or "sin calibrar"
+
+    st.markdown(
+        f'<div class="metric-card" style="border-left:7px solid {color};">'
+        f'<div class="metric-label">{icon} Resultado de la fusión F7</div>'
+        f'<div class="metric-value" style="color:{color};">{label}</div>'
+        f'<div class="metric-sub">Score {("—" if p_fake is None else f"{float(p_fake):.3f}")} '
+        f"· método de calibración: {html.escape(str(method))} "
+        f"· score crudo {('—' if raw_score is None else f'{float(raw_score):.3f}')}</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    metric_cols = st.columns(5)
+    values = [
+        (
+            "Tipo detectado",
+            DOCUMENT_LABELS.get(observation.doctype.label, observation.doctype.label),
+            "OCR + reglas",
+        ),
+        (
+            "Captura",
+            CAPTURE_LABELS.get(observation.capture.type.value, observation.capture.type.value),
+            "tipo de imagen",
+        ),
+        (
+            "OCR",
+            "—" if observation.ocr.mean_conf is None else f"{observation.ocr.mean_conf:.2f}",
+            f"{observation.ocr.n_words} palabras",
+        ),
+        (
+            "F4 página",
+            "—" if payload.get("f4_score") is None else f"{float(payload['f4_score']):.2f}",
+            "EfficientNet-B0",
+        ),
+        ("Latencia", f"{payload.get('timings_ms', {}).get('total_ms', 0)} ms", "pipeline completo"),
+    ]
+    for column, (title, value, sub) in zip(metric_cols, values, strict=True):
+        with column:
+            st.markdown(_metric_card(title, str(value), sub, color), unsafe_allow_html=True)
+
+    left, right = st.columns([1.05, 1.0], gap="large")
+    with left, st.container(border=True):
+        st.markdown("**Documento original**")
+        st.image(data, caption=filename, width="stretch")
+    with right, st.container(border=True):
+        overlay = (payload.get("f5") or {}).get("overlay_path")
+        st.markdown("**Mapa de localización F5**")
+        if overlay and Path(overlay).is_file():
+            st.image(overlay, caption="F5 · probabilidad de manipulación", width="stretch")
+        else:
+            st.info(
+                "F5 no disponible para este documento (checkpoint ausente o imagen no legible)."
+            )
+
+    st.markdown(
+        '<div class="section-title"><h3>Evidencias para la revisión</h3>'
+        "<span>ordenadas por contribución al riesgo</span></div>",
+        unsafe_allow_html=True,
+    )
+    evidences = observation.fusion.evidences
+    if evidences:
+        for evidence in evidences:
+            st.markdown(_finding_card(evidence), unsafe_allow_html=True)
+    else:
+        st.info("No se registraron evidencias automáticas.")
+
+    explanation = payload.get("explanation") or {}
+    st.markdown(
+        '<div class="section-title"><h3>Explicación</h3>'
+        "<span>lenguaje natural a partir de hallazgos estructurados</span></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div class="empty-state">{html.escape(str(explanation.get("text", "Sin explicación."))).replace(chr(10), "<br>")}</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        f"Fuente: {explanation.get('source', '—')} · "
+        "el sistema no rechaza documentos ni emite una decisión automática."
+    )
+
+    detail_tabs = st.tabs(["Campos extraídos", "Señales F4/F5/F6", "Reglas y registro", "JSON"])
+    with detail_tabs[0]:
+        if observation.fields:
+            st.markdown(_fields_table(observation.fields), unsafe_allow_html=True)
+        else:
+            st.info("No se extrajeron campos por OCR.")
+        missing = _missing_fields(observation)
+        if missing:
+            st.warning("Campos requeridos no encontrados: " + ", ".join(missing))
+    with detail_tabs[1]:
+        cols = st.columns(3)
+        with cols[0]:
+            st.metric(
+                "F4 · página",
+                "—" if payload.get("f4_score") is None else f"{float(payload['f4_score']):.3f}",
+            )
+            st.caption("Clasificador de manipulación de página; no localiza.")
+        with cols[1]:
+            f5 = (payload.get("f5") or {}).get("summary") or {}
+            st.metric("F5 · max", "—" if not f5 else f"{float(f5.get('max_prob', 0)):.3f}")
+            st.caption(f"Área marcada: {0 if not f5 else float(f5.get('area_fraction', 0)):.1%}")
+        with cols[2]:
+            semantic = payload.get("semantic") or {}
+            st.metric("F6 · banderas", str(len(semantic.get("flags") or [])))
+            st.caption(", ".join(semantic.get("flags") or []) or "sin banderas")
+        semantic = payload.get("semantic") or {}
+        if semantic.get("notes"):
+            for note in semantic["notes"]:
+                st.markdown(f"- {html.escape(str(note))}")
+        st.markdown("**Señales forenses**")
+        cards = "".join(
+            _signal_card(name, getattr(observation.forensics, name))
+            for name in ("metadata", "localization", "ela", "noise", "chromatic", "jpeg")
+        )
+        st.markdown(f'<div class="signal-grid">{cards}</div>', unsafe_allow_html=True)
+    with detail_tabs[2]:
+        if observation.rules:
+            for finding in observation.rules:
+                st.markdown(_finding_card(finding), unsafe_allow_html=True)
+        else:
+            st.success("No se activaron reglas semánticas.")
+        st.markdown(_registry_html(observation), unsafe_allow_html=True)
+    with detail_tabs[3]:
+        st.json(payload)
+
+    st.divider()
+    download_cols = st.columns([1, 1, 2])
+    with download_cols[0]:
+        st.download_button(
+            "Descargar JSON",
+            data=json.dumps(payload, ensure_ascii=False, indent=2),
+            file_name=f"{payload['document_id'][7:19]}_informe.json",
+            mime="application/json",
+            width="stretch",
+        )
+    with download_cols[1]:
+        pdf = entry.get("pdf")
+        if pdf and Path(pdf).is_file():
+            st.download_button(
+                "Descargar PDF",
+                data=Path(pdf).read_bytes(),
+                file_name=Path(pdf).name,
+                mime="application/pdf",
+                width="stretch",
+            )
+        else:
+            st.button("PDF no disponible", disabled=True, width="stretch")
+    with download_cols[2]:
+        if entry.get("analysis_id"):
+            st.caption(f"Guardado en historial SQLite · análisis #{entry['analysis_id']}")
+
+    if selected_row is not None:
+        band = RiskBand(
+            key=risk,
+            label=label,
+            color=color,
+            icon=icon,
+            note="Banda de la fusión F7.",
+        )
+        _ground_truth(observation, selected_row, float(p_fake or 0.0), band)
+
+
+def _history_tab() -> None:
+    st.markdown(
+        '<div class="section-title"><h3>Historial de análisis</h3>'
+        "<span>SQLite local · revisión humana registrada</span></div>",
+        unsafe_allow_html=True,
+    )
+    try:
+        with HistoryStore(HISTORY_DB) as store:
+            stats = store.stats()
+            rows = store.recent(50)
+            if not rows:
+                st.info(
+                    "Todavía no hay análisis guardados. Analiza un documento en la primera pestaña."
+                )
+                return
+            cols = st.columns(3)
+            with cols[0]:
+                st.metric("Análisis", stats["total"])
+            with cols[1]:
+                st.metric("Revisados", stats["reviewed"])
+            with cols[2]:
+                st.metric("Riesgo alto", stats["by_risk"].get("alto", 0))
+            st.dataframe(
+                [
+                    {
+                        "id": row["id"],
+                        "fecha": row["created_at"][:19].replace("T", " "),
+                        "documento": row["filename"],
+                        "tipo": row["doctype"],
+                        "score": "—" if row["p_fake"] is None else round(float(row["p_fake"]), 3),
+                        "riesgo": row["risk"],
+                        "explicación": row["explanation_source"],
+                    }
+                    for row in rows
+                ],
+                width="stretch",
+                hide_index=True,
+            )
+            options = {
+                f"#{row['id']} · {row['filename']} · {row['risk']}": row["id"] for row in rows
+            }
+            selected = st.selectbox("Ver detalle", list(options))
+            analysis_id = options[selected]
+            payload = store.get(analysis_id)
+            if payload:
+                observation = Observation.model_validate(payload["observation"])
+                st.markdown(
+                    f"**{payload.get('created_at', '')[:19]} · "
+                    f"{observation.doctype.label} · riesgo `{payload.get('fusor', {}).get('risk')}`**"
+                )
+                explanation = payload.get("explanation") or {}
+                st.markdown(f"> {explanation.get('text', 'Sin explicación')}")
+                if observation.fusion.evidences:
+                    for evidence in observation.fusion.evidences:
+                        st.markdown(_finding_card(evidence), unsafe_allow_html=True)
+                st.markdown("**Revisión humana**")
+                label = st.radio(
+                    "Resultado de la revisión",
+                    ("requiere_revision", "confirmado_manualmente", "descartado"),
+                    horizontal=True,
+                )
+                notes = st.text_area("Notas de la revisión", height=80)
+                if st.button("Guardar revisión"):
+                    store.add_feedback(analysis_id, label=label, notes=notes, reviewer="demo")
+                    st.success("Revisión guardada en SQLite.")
+                previous = store.feedback_for(analysis_id)
+                if previous:
+                    st.caption(
+                        "Revisiones previas: "
+                        + "; ".join(
+                            f"{item['label']} ({item['created_at'][:10]})" for item in previous
+                        )
+                    )
+    except Exception as exc:
+        st.error(f"No se pudo abrir el historial SQLite: {exc}")
 
 
 def main() -> None:
@@ -1260,29 +1778,45 @@ def main() -> None:
     _hero()
 
     sample_rows = _load_samples(str(SAMPLE_INDEX))
-    people_rows = _load_people(str(SAMPLE_PEOPLE))
-    data, filename, selected_row, registry_rows = _sidebar(sample_rows, people_rows)
+    v2_rows = _load_v2_samples(str(V2_ROOT))
+    data, filename, selected_row, registry_rows, _data_root = _sidebar(sample_rows, v2_rows)
 
-    analysis_tab, f4_tab, phases_tab = st.tabs(
-        ["Análisis", "F4 experimental", "Fases del proyecto"]
+    integral_tab, analysis_tab, f4_tab, history_tab, phases_tab = st.tabs(
+        [
+            "Análisis integral",
+            "Análisis F3",
+            "F4 experimental",
+            "Historial",
+            "Fases del proyecto",
+        ]
     )
+
+    with integral_tab:
+        _integrated_tab(data, filename, selected_row, registry_rows)
 
     with analysis_tab:
         if data is None:
-            _landing(sample_rows, people_rows)
+            _landing(v2_rows or sample_rows, registry_rows)
         else:
-            with st.spinner("Analizando: calidad, forense, OCR, reglas y registro…"):
-                payload = _analyze_cached(
-                    data,
-                    filename,
-                    registry_rows,
-                    date.today().isoformat(),
-                )
+            cached = _cached_entry(data, filename, selected_row, registry_rows)
+            if cached is not None:
+                payload = cached["payload"]["observation"]
+            else:
+                with st.spinner("Analizando: calidad, forense, OCR, reglas y registro…"):
+                    payload = _analyze_cached(
+                        data,
+                        filename,
+                        registry_rows,
+                        date.today().isoformat(),
+                    )
             observation = Observation.model_validate(payload)
             _render_result(observation, data, filename, selected_row)
 
     with f4_tab:
         _f4_tab(data, filename)
+
+    with history_tab:
+        _history_tab()
 
     with phases_tab:
         _phases_tab()

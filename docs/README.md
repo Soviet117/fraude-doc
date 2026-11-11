@@ -1,8 +1,21 @@
 # Documentación
 
-- `plan-sistema-fraude-documental.md` (raíz): fuente de verdad del proyecto.
-- `AGENTS.md` (raíz): contexto y reglas para agentes de IA.
-- `docs/cap4/`: figuras y tablas generadas por scripts para el Cap. IV.
-- `docs/guia_anotacion.md`: taxonomía T1–T8 y criterios de etiquetado (fase F1).
-- `docs/solicitud_cetpro.md`: plantilla de solicitud formal y consentimiento (fase F1).
-- `docs/manual_demo.md`: guion de uso y sustentación (fase F9).
+- [`../plan-sistema-fraude-documental.md`](../plan-sistema-fraude-documental.md) (raíz): fuente de verdad del proyecto.
+- [`../AGENTS.md`](../AGENTS.md) (raíz): contexto y reglas para agentes de IA.
+- [`manual_demo.md`](manual_demo.md): arranque, guion de sustentación, cifras y solución de problemas.
+- [`diagramas.md`](diagramas.md): casos de uso, arquitectura, ER SQLite y flujo del pipeline.
+- [`cap4_resultados.md`](cap4_resultados.md): tabla maestra y figuras del Cap. IV.
+- [`guia_anotacion.md`](guia_anotacion.md): taxonomía T1–T8 y criterios de etiquetado (F1).
+- [`solicitud_cetpro.md`](solicitud_cetpro.md): plantilla de solicitud formal y consentimiento (F1).
+- [`f3_linea_base.md`](f3_linea_base.md): línea base F3, umbrales e IC bootstrap.
+- [`f4_corpus_v2.md`](f4_corpus_v2.md): data card del corpus v2 y resultados F4.
+- [`f5_localizacion.md`](f5_localizacion.md): F5, U-Net, Pixel-F1 y límites por ataque.
+- [`f6_semantica.md`](f6_semantica.md): F6, extracción, duplicados, explicación y fallback.
+- [`f7_fusion.md`](f7_fusion.md): F7, features, calibración, ablaciones y SHAP.
+- [`model_card_f4.md`](model_card_f4.md): model card de F4.
+- [`model_card_f7.md`](model_card_f7.md): model card de F7.
+- [`presentacion.md`](presentacion.md): guion breve y cifras citables.
+- [`auditoria_muestras.md`](auditoria_muestras.md): integridad y límites del corpus v1.
+- [`ocr_muestras.md`](ocr_muestras.md): medición de OCR real con docTR.
+- [`muestras_pipeline.md`](muestras_pipeline.md): evaluación end-to-end del corpus v1.
+- [`figuras/`](figuras/): diagramas y figuras reproducibles para diapositivas y Cap. IV.

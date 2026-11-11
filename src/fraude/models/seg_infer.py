@@ -64,3 +64,22 @@ def localization_summary(probability: np.ndarray, *, threshold: float = 0.5) -> 
         "mean_prob": round(float(probability.mean()), 6),
         "area_fraction": round(float((probability >= threshold).mean()), 6),
     }
+
+
+def heatmap_overlay(
+    image: Image.Image,
+    probability: np.ndarray,
+    *,
+    alpha: float = 0.55,
+) -> Image.Image:
+    """Superpone un mapa de calor continuo (amarillo→rojo) sobre la página."""
+    height, width = probability.shape
+    base = image.convert("RGB").resize((width, height), Image.Resampling.BILINEAR)
+    array = np.asarray(base, dtype=np.float32).copy()
+    heat = np.clip(probability.astype(np.float32), 0.0, 1.0)[..., None]
+    color = np.zeros_like(array)
+    color[..., 0] = 255.0
+    color[..., 1] = 220.0 * (1.0 - heat[..., 0])
+    color[..., 2] = 30.0 * (1.0 - heat[..., 0])
+    blended = array * (1.0 - alpha * heat) + color * (alpha * heat)
+    return Image.fromarray(np.clip(blended, 0, 255).astype(np.uint8), mode="RGB")

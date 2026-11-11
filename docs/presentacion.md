@@ -1,214 +1,202 @@
 # Guía breve para presentar el prototipo
 
-Este documento es apoyo para la sustentación del curso. No sustituye el plan,
-el Cap. IV ni la model card; ordena qué mostrar, qué cifras se pueden citar y
-qué límites hay que decir en voz alta.
+Apoyo para la sustentación. No sustituye el Cap. IV ni las model cards. Ordena
+qué mostrar, qué cifras se pueden citar y qué límites hay que decir en voz alta.
 
 ## 1. Mensaje en una frase
 
 El prototipo recibe un documento académico sintético, combina calidad, forense,
-OCR, reglas, registro y un clasificador visual experimental, y devuelve
-**evidencias para priorizar revisión humana**, nunca una decisión automática.
+OCR, reglas, registro, semántica y modelos visuales, y devuelve **evidencias
+para priorizar revisión humana**, nunca una decisión automática.
 
 ## 2. Estado de las fases
 
 | Fase | Estado | Qué mostrar |
 |---|---|---|
 | F0 | Cerrada en local | Docker, CI, contrato `Observation` |
-| F1 | Cerrada con corpus sintético | 20 muestras v1 + 50 documentos base v2; sin documentos reales |
-| F2 | Cerrada | Calidad, generador, ataques T1–T8, aumentación, particiones |
-| F3 | Cerrada provisional | Forense + OCR + reglas + registro; detecta T7/T8 |
-| F4 | Cerrada experimental | EfficientNet-B0 de página; detecta T5/T6; falla T1–T4 |
-| F5 | Pendiente | Localización/parches para T1–T4 |
-| F6 | Pendiente | Rama semántica/NLP y explicación con LLM local |
-| F7 | Pendiente | Fusión calibrada LightGBM |
-| F8 | Pendiente | Evaluación integral con varias semillas y robustez |
-| F9 | En curso | Demo, model card, data card y Cap. IV |
+| F1 | Cerrada con corpus sintético | v1 (20) + v2 (50 documentos base); sin reales |
+| F2 | Cerrada | Calidad, generador, T1–T8, aumentación, folds |
+| F3 | Cerrada provisional | Forense + OCR + reglas + registro; T7/T8 |
+| F4 | Cerrada experimental | EfficientNet-B0 de página; T5/T6 |
+| F5 | Cerrada experimental | U-Net 128 px; T5/T6, limitado en T1–T4 |
+| F6 | Cerrada experimental | Semántica, duplicados, explicación con fallback |
+| F7 | Cerrada experimental | LightGBM + calibración; F1 0.898 OOF |
+| F8 | Parcial | OOF, IC y ablaciones; faltan semillas, robustez y kappa |
+| F9 | En curso | Demo integral, SQLite, PDF, diagramas y documentación |
 
-La model card está en [`docs/model_card_f4.md`](model_card_f4.md) y el data card
-del corpus v2 en [`docs/f4_corpus_v2.md`](f4_corpus_v2.md), secciones 1–2.
+La demo es la fuente de verdad del estado; la pestaña **Fases** lo muestra.
 
-## 3. Demo en cinco minutos
+## 3. Demo en 6 minutos
 
 ### Antes de empezar
 
 ```bash
-make test          # debe quedar en verde
-make demo          # Streamlit en http://localhost:8501
+make test                      # debe quedar en verde
+make demo                      # http://localhost:8501
 ```
 
-Si no existe el corpus v2, generarlo una vez (tarda unos minutos):
+Si faltan artefactos:
 
 ```bash
-make synth-v2
-make validate-v2
-make folds-v2
-```
-
-El checkpoint que usa la demo es `artifacts/models/f4/fold_2.pt`; si no existe:
-
-```bash
-make train-f4 ARGS="--epochs 12 --device cpu"
-make eval-f4
+make synth-v2 && make validate-v2 && make folds-v2
+make train-f4 ARGS="--epochs 12 --device cpu" && make eval-f4
+make train-f5 ARGS="--epochs 12 --device cpu --image-size 128" && make eval-f5
+make pipeline-v2 && make eval-f6 && make features-f7 && make train-f7
 ```
 
 ### Guion
 
-1. **Abrir la demo** y mostrar la barra lateral: origen del documento, muestra
-   del corpus o archivo subido.
-2. **F3 con M19 (T7):** seleccionar `M19 · DNI` en el menú. En la pestaña
-   *Análisis* mostrar calidad, forense, OCR, reglas y el cruce con registro. La
-   señal fuerte es la sustitución de identidad, no una huella visual.
-3. **F3 con M20 (T8):** mostrar la inconsistencia de periodo/fecha. Explicar que
-   F3 cubre semántica y registro; F4 no está pensado para eso.
-4. **F4 con T5:** en la barra lateral elegir *Subir archivo* y subir
-   `data/synthetic/v2/images/dni_0007_t5.png`. Ir a la pestaña *F4 experimental*:
-   score alto y Grad-CAM. Es un cambio de fotografía, región grande.
-5. **F4 con T6:** subir `data/synthetic/v2/images/certificado_modulo_0005_t6.png`.
-   Mostrar score alto. T6 cambia la página completa.
-6. **F4 con T1 (fallo honesto):** subir
-   `data/synthetic/v2/images/dni_0000_t1.png`. Score bajo. Explicar que T1 es una
-   edición local de texto y que un clasificador de página a 224 px no la ve; para
-   eso está F5 (localización/parches).
-7. **Pestaña *Fases*:** cerrar con el estado real: F0–F4 cerradas, F5–F9
-   pendientes.
+1. **Abrir la demo** y mostrar la barra lateral: corpus v2, corpus v1 o subida.
+   Explicar que el v2 entrena F4/F5/F7 y el v1 conserva un ataque de cada tipo.
+2. **Auténtico (`dni_0000`)**: pestaña *Análisis integral*. Mostrar banda baja,
+   score, evidencias y mapa F5. Aclarar que el mapa es cualitativo.
+3. **T7 (`dni_0007_t7_c1`)**: evidencia de reutilización y score alto. Decir que
+   T7 es una copia exacta en el corpus; no mide reutilización real.
+4. **T1 (`dni_0000_t1`)**: F4/F5 no ven la edición pequeña, pero la regla de
+   registro sí; la fusión sube el riesgo. Es el argumento del sistema híbrido.
+5. **T6 (`certificado_modulo_0005_t6`)**: score alto y mapa F5 cubriendo la
+   página. Mostrar que el tipo detectado puede fallar y que la fusión compensa.
+6. **Descargar PDF/JSON** y mostrar evidencias, campos, explicación y límites.
+7. **Historial**: análisis guardado en SQLite; registrar una revisión humana.
+8. **Fases**: cerrar con F0–F7 cerradas, F8 parcial y F9 en curso.
 
-> Las muestras del menú lateral son del corpus v1 (`data/muestras`); el
-> checkpoint F4 se entrenó con el corpus v2. Para la demo F4 conviene subir una
-> imagen de `data/synthetic/v2/images/`, como se indica arriba.
+> Para F4, subir `data/synthetic/v2/images/dni_0007_t5.png` o
+> `certificado_modulo_0005_t6.png`; para T1, `dni_0000_t1.png`.
 
 ### Figuras para diapositivas
 
 ```bash
-make figures-f4    # curvas, matriz de confusión, recall por ataque y calibración
-make gradcam-f4    # TP, TN, FP y FN
+make figures-f4     # curvas, matriz, recall por ataque, calibración
+make figures-f5     # Pixel-F1 por ataque, barrido, ejemplos
+make figures-f7     # ROC/PR, confusión, calibración, ablaciones, SHAP
+make diagrams       # casos de uso, arquitectura, ER y flujo
 ```
 
-`figures-f4` deja cuatro PNGs en `artifacts/models/f4/figures/`. `gradcam-f4`
-genera los mapas de calor en `artifacts/models/f4/gradcam/` usando el fold 2,
-que es el de mejor PR-AUC de validación. Los casos son out-of-fold de ese fold.
+Salidas en `artifacts/models/f4/figures`, `artifacts/models/f5/figures`,
+`artifacts/models/f7/figures` y `docs/figuras`.
 
 ## 4. Cifras que se pueden citar
 
-### F4 — predicciones out-of-fold (270 imágenes, 45 documentos base)
+### F3 — línea base (`stripped`, 20 muestras)
+
+| Precision | Recall | F1 | FPR |
+|---:|---:|---:|---:|
+| 0.500 | 0.125 | 0.200 | 0.083 |
+
+### F4 — página (270 OOF)
 
 | Métrica | Valor | IC 95 % |
 |---|---:|---|
-| PR-AUC | 0.712 | 0.641-0.778 |
-| ROC-AUC | 0.653 | 0.581-0.721 |
-| F1 @0.5 | 0.541 | 0.446-0.625 |
-| Precision @0.5 | 0.803 | — |
-| Recall @0.5 | 0.408 | — |
-| FPR @0.5 | 0.080 | 0.040-0.124 |
+| PR-AUC | 0.712 | 0.641–0.778 |
+| F1 @0.5 | 0.541 | 0.446–0.625 |
+| Precision | 0.803 | — |
+| Recall | 0.408 | — |
+| FPR | 0.080 | 0.040–0.124 |
 
-La prevalencia (PR-AUC sin habilidad) es 0.444. El IC inferior del PR-AUC queda
-por encima, así que hay señal; el ROC-AUC es modesto.
+Recall T5 = 1.000, T6 = 1.000; T1/T4 = 0.000.
 
-### F4 — recall por ataque (documentos base)
+### F5 — localización (270 OOF)
 
-| Ataque | n | Recall @0.5 |
+| Escenario | Pixel-F1 | IoU |
 |---|---:|---:|
-| T1 sustitución de texto | 4 | 0.000 |
-| T2 sello insertado | 4 | 0.250 |
-| T3 copy-move | 3 | 0.333 |
-| T4 borrado de campo | 3 | 0.000 |
-| T5 reemplazo de fotografía | 3 | 1.000 |
-| T6 documento fabricado | 3 | 1.000 |
+| Fijo 0.5 | 0.846 | 0.733 |
+| Calibrado | 0.915 | 0.844 |
+| Oráculo | 0.951 | 0.906 |
 
-Los folds 0 y 4 quedan cerca del azar (PR-AUC 0.521 y 0.420) porque no contienen
-T5/T6; los folds 1, 2 y 3 superan 0.77. La composición de ataques por fold
-domina la varianza.
+T1–T4 ≈ 0; T5 calibrado 0.799; T6 0.971. **El promedio está dominado por T5/T6.**
 
-### F3 — línea base sin deep learning (`stripped`, 20 muestras)
+### F6 — semántica (50 documentos)
 
 | Métrica | Valor |
 |---|---:|
-| Precision | 0.500 |
-| Recall | 0.125 |
-| F1 | 0.200 |
-| FPR | 0.083 |
+| Tipo documental | 0.960 |
+| Recall T7 | 1.000 (copia exacta) |
+| FPR auténticos (T7) | 0.000 |
+| Explicaciones no vacías | 50/50 |
 
-F3 detecta T7/T8; F4 aporta T5/T6. La comparación **no es controlada**: distinto
-corpus, tamaño y prevalencia. Sirve para mostrar complementariedad, no para
-afirmar que F4 reemplaza a F3.
+### F7 — fusión (50 OOF)
 
-### Calibración F4
+| Métrica | Valor | IC 95 % |
+|---|---:|---|
+| PR-AUC | 0.980 | 0.946–1.000 |
+| F1 @0.5 | 0.898 | 0.808–0.972 |
+| Precision | 0.917 | — |
+| Recall | 0.880 | — |
+| FPR | 0.080 | — |
+| Brier / ECE | 0.085 / 0.070 | — |
 
-| Versión | Brier | ECE |
-|---|---:|---:|
-| Cruda | 0.2825 | 0.2649 |
-| Isotónica cruzada | 0.2068 | 0.0858 |
+Calibración elegida: **identidad**, porque isotónica (ECE 0.102) y Platt
+(ECE 0.138) empeoran con n = 50.
 
-La calibración mejora, pero la demo muestra el score crudo y lo declara como no
-calibrado. No es una probabilidad de fraude.
+### Sistema
+
+Latencia total ≈ **3.4 s** en CPU (OCR ≈ 2–3 s, forense ≈ 0.4 s, F4+F5 ≈ 0.1 s,
+F7 ≈ 0.003 s).
 
 ## 5. Límites que hay que decir
 
 1. **Todo es sintético.** No hay documentos reales del CETPRO; los números son
    prueba de viabilidad, no desempeño institucional.
-2. **50 documentos base y 10 personas.** Los intervalos son anchos y la
-   variabilidad entre folds es alta.
-3. **Una sola semilla (42).** Repetir con otras semillas es F8.
-4. **F4 es clasificación de página, no localización.** Grad-CAM es cualitativo;
-   Pixel-F1/IoU son F5.
-5. **T1–T4 no se detectan.** T1/T4 son ediciones locales de texto; T2/T3 quedan
-   en 0.250/0.333. Es el argumento para F5.
-6. **T7/T8 no están en F4.** Los cubren las reglas y el registro de F3, y F6
-   para semántica.
-7. **Ninguna decisión automática.** El sistema prioriza revisión humana; el LLM
-   solo redactaría explicaciones y nunca decide.
-8. **Comparación F3/F4 no controlada.** Distinto corpus y prevalencia.
+2. **50 documentos base y 10 personas.** IC anchos; semilla principal 42 y barrido de 5 semillas, pero faltan robustez y kappa.
+3. **F5 no localiza T1–T4.** Ediciones pequeñas de texto se pierden a 128 px.
+4. **T7 es trivial.** La copia exacta infla la ablación semántica; falta
+   reescaneo/recompresión.
+5. **F4 no ve T1–T4.** Es un clasificador de página, no un localizador.
+6. **Calibración identidad.** Es una decisión defendible con n pequeño, no una
+   probabilidad institucional.
+7. **F8 incompleta.** Faltan varias semillas, robustez, McNemar, kappa y pre/post.
+8. **Comparación F3/F4/F5/F7 no controlada.** Distinto corpus, tamaño y
+   prevalencia.
+9. **Sin despliegue, sin RENIEC/MINEDU, sin blockchain.** Trabajo futuro.
 
 ## 6. Preguntas probables
 
-**¿Por qué F1 no es más alto?**
-Porque el umbral 0.5 es conservador (precision 0.803, recall 0.408, FPR 0.080).
-El umbral calibrado max-F1 sube el recall a 0.983 pero el FPR a 0.987: marca casi
-todo. El punto FPR ≤ 0.2 es un compromiso más razonable. No hay un umbral único
-“correcto” sin coste de revisión.
+**¿Por qué F7 da 0.98 si F5 falla T1–T4?**
+Porque F7 no usa solo F5: combina reglas, forense, registro, semántica y F4/F5.
+En T1, por ejemplo, la regla de registro detecta el cambio de DNI aunque la
+localización no vea la edición. El 0.98 es sobre 50 documentos sintéticos; no
+generaliza sin validación externa.
 
-**¿Por qué no entrenar con T7/T8?**
-T7 reutiliza un documento auténtico de otra persona y T8 cambia contenido
-semántico; no dejan huella visual local. Meterlos en una CNN de página añade
-ruido de etiqueta. F3 y F6 son las ramas correctas.
+**¿Por qué no entrenar F5 a mayor resolución?**
+Es el siguiente paso, pero en CPU y con 2 días de plazo se priorizó el sistema
+funcional. Entrenar por parches a 256/384 px es trabajo de F5 v2/F8.
+
+**¿Por qué la calibración es identidad?**
+Con 50 casos, isotónica y Platt sobreajustan y suben Brier/ECE. El protocolo
+compara los tres métodos y elige el de menor Brier; identidad gana (ECE 0.070).
 
 **¿Por qué no usar un LLM para decidir?**
-ADR-05: el LLM solo redacta a partir de hallazgos estructurados. Debe existir
-un fallback por plantilla y el sistema no puede rechazar documentos solo.
-
-**¿Por qué no hay documentos reales?**
-Ley N.° 29733 y alcance del curso: no se usan datos personales reales. La
-limitación está declarada en F1 y en la model card.
+ADR-05: el LLM solo redacta a partir de hallazgos estructurados. La plantilla
+funciona con Ollama apagado y la decisión es humana.
 
 **¿Qué falta para producción?**
-F5 (localización), F6 (semántica), F7 (fusión calibrada), F8 (evaluación
-integral con semillas y robustez), F9 (cierre documental) y validación con el
-CETPRO.
+F8 completa (semillas, robustez, kappa), F5 por parches, documentos reales
+anonimizados, validación con el CETPRO, verificación en las 3 PCs y revisión
+legal.
 
-## 7. Guion de diapositivas (8)
+## 7. Guion de diapositivas (10)
 
-1. **Problema y alcance:** fraude documental en CETPRO; apoyo a revisión, no
-   decisión automática.
-2. **Pipeline:** calidad → forense → OCR → extracción → reglas → registro →
-   F4 → explicación.
-3. **Corpus v2:** 50 documentos base, 25/25, 10 personas, 7 tipos, 300 imágenes,
-   T1–T8.
-4. **F3:** forense + OCR + reglas + registro; tabla `stripped`; detecta T7/T8.
-5. **F4:** EfficientNet-B0, 224 px, folds agrupados, OOF, calibración.
-6. **Resultados F4:** PR-AUC 0.712, F1 0.541, FPR 0.080; T5/T6 recall 1.0;
-   T1/T4 0.
-7. **Errores y límites:** folds 0/4, ataques locales, corpus sintético, una
-   semilla, Grad-CAM no es localización.
-8. **Roadmap:** F5–F9 y demo; complementariedad F3/F4/F6/F7.
+1. Problema y alcance: fraude documental en CETPRO; apoyo a revisión.
+2. Pipeline híbrido: calidad → forense → OCR/reglas → semántica → F4/F5 → F7.
+3. Corpus v2: 50 documentos, 25/25, 10 personas, 7 tipos, 300 imágenes.
+4. F3: línea base; detecta T7/T8.
+5. F4: EfficientNet-B0 de página; T5/T6, falla T1–T4.
+6. F5: U-Net; Pixel-F1 alto por T5/T6, nulo en T1–T4 (límite honesto).
+7. F6: semántica, duplicados y explicación con fallback.
+8. F7: fusión calibrada; F1 0.898, ECE 0.070, ablaciones.
+9. Demo: integral, PDF, SQLite, historial y revisión humana.
+10. Límites y trabajo futuro: sintético, n pequeño, F8, F5 por parches.
 
 ## 8. Checklist antes de presentar
 
 - [ ] `make test` en verde.
 - [ ] `make lint` en verde.
 - [ ] `make demo` abre en `localhost:8501`.
-- [ ] `artifacts/models/f4/fold_2.pt` existe.
-- [ ] `artifacts/models/f4/eval.md` y `eval.json` existen.
-- [ ] `make figures-f4` y `make gradcam-f4` generaron las figuras.
+- [ ] Existen `artifacts/models/f4/fold_2.pt`, `artifacts/models/f5/fold_0.pt` y
+      `artifacts/models/f7/fusion.joblib`.
+- [ ] `artifacts/models/f7/metrics.json` y `eval.md` existen.
+- [ ] `make figures-f4`, `make figures-f5`, `make figures-f7` y `make diagrams`
+      generaron las figuras.
 - [ ] Las imágenes de demo son sintéticas y no contienen PII.
 - [ ] Capturas de respaldo de la demo y de `eval.md` por si falla el directo.
 - [ ] Cerrar otras aplicaciones que consuman CPU/GPU antes de la demo.

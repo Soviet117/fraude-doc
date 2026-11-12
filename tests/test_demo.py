@@ -81,8 +81,8 @@ def test_theme_css_switches_tokens() -> None:
     light = demo._theme_css(False)
     dark = demo._theme_css(True)
 
-    assert "--bg:#F3F6FA" in light
-    assert "--bg:#07101D" in dark
+    assert "--bg:#F3F7FA" in light
+    assert "--bg:#050B12" in dark
     assert "color-scheme:dark" in dark
 
 

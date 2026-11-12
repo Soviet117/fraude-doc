@@ -23,6 +23,7 @@ Prototipo de investigación aplicada que analiza documentos académicos (DNI, ce
 | [`docs/manual_demo.md`](docs/manual_demo.md) | Arranque, guion de sustentación, cifras y solución de problemas |
 | [`docs/diagramas.md`](docs/diagramas.md) | Casos de uso, arquitectura, ER SQLite y flujo del pipeline |
 | [`docs/cap4_resultados.md`](docs/cap4_resultados.md) | Tabla maestra y figuras para el Cap. IV |
+| [`docs/verificacion_final.md`](docs/verificacion_final.md) | Checklist de cierre, comandos y evidencia de la verificación |
 | [`docs/f3_linea_base.md`](docs/f3_linea_base.md) | Línea base F3, umbrales e IC bootstrap |
 | [`docs/f4_corpus_v2.md`](docs/f4_corpus_v2.md) | Data card del corpus v2 y resultados F4 |
 | [`docs/f5_localizacion.md`](docs/f5_localizacion.md) | F5: U-Net, Pixel-F1, límites por ataque |

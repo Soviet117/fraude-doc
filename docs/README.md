@@ -5,6 +5,7 @@
 - [`manual_demo.md`](manual_demo.md): arranque, guion de sustentación, cifras y solución de problemas.
 - [`diagramas.md`](diagramas.md): casos de uso, arquitectura, ER SQLite y flujo del pipeline.
 - [`cap4_resultados.md`](cap4_resultados.md): tabla maestra y figuras del Cap. IV.
+- [`verificacion_final.md`](verificacion_final.md): checklist de cierre, comandos y evidencia de tests/demo.
 - [`guia_anotacion.md`](guia_anotacion.md): taxonomía T1–T8 y criterios de etiquetado (F1).
 - [`solicitud_cetpro.md`](solicitud_cetpro.md): plantilla de solicitud formal y consentimiento (F1).
 - [`f3_linea_base.md`](f3_linea_base.md): línea base F3, umbrales e IC bootstrap.

@@ -1,0 +1,284 @@
+==============================================================================
+ MANUAL DE USUARIO
+ Verificador documental - CETPRO San Agustin
+ Prototipo de investigacion aplicada (curso de 8.o ciclo)
+==============================================================================
+
+Version: 1.0 (prototipo para sustentacion)
+Fecha: 2026-11-11
+Acceso: http://localhost:8501
+Datos: sinteticos, sin PII real
+
+------------------------------------------------------------------------------
+ 1. QUE ES ESTE SISTEMA
+------------------------------------------------------------------------------
+
+Es un prototipo que recibe la imagen de un documento academico (DNI,
+certificado de estudios, partida de nacimiento, ficha de matricula, acta de
+evaluacion, certificado de modulo o titulo de Auxiliar Tecnico) y devuelve:
+
+  - una banda de riesgo: bajo, medio o alto;
+  - un score de la fusion F7;
+  - las evidencias que explican el resultado;
+  - un mapa de localizacion F5 (cuando esta disponible);
+  - los campos extraidos por OCR;
+  - una explicacion en lenguaje natural;
+  - un informe PDF y un JSON descargables.
+
+El sistema NO rechaza documentos ni certifica autenticidad. Prioriza la
+revision humana. No valida oficialmente documentos de RENIEC ni de MINEDU.
+
+Importante: todo el corpus es sintetico. Los resultados son una prueba de
+viabilidad, no una estimacion de desempeno institucional.
+
+------------------------------------------------------------------------------
+ 2. QUE PUEDO SUBIR
+------------------------------------------------------------------------------
+
+  - Imagenes PNG, JPG/JPEG, TIF/TIFF, BMP o WEBP.
+  - La imagen debe ser legible: sin desenfoque extremo, sin cortes y con
+    resolucion suficiente.
+  - La demo actual NO acepta PDF directamente. Si tienes un PDF, exporta la
+    pagina a PNG o JPG antes de subirla.
+
+Si la calidad es insuficiente, el sistema no acusa fraude: devuelve
+"Recapturar" y explica que la imagen no es analizable.
+
+------------------------------------------------------------------------------
+ 3. COMO INICIAR LA DEMO
+------------------------------------------------------------------------------
+
+Opcion A: con Docker (recomendada para la presentacion)
+
+  1. Abrir una terminal en la carpeta del proyecto.
+  2. Ejecutar:   make up
+  3. Ejecutar:   make demo
+  4. Abrir en el navegador: http://localhost:8501
+
+Opcion B: sin Docker (si el equipo tiene Python y el entorno .venv)
+
+  1. Abrir una terminal en la carpeta del proyecto.
+  2. Ejecutar:
+       .venv/bin/streamlit run apps/demo/app.py
+  3. Abrir en el navegador: http://localhost:8501
+
+Si algo falla, revisar la seccion 10 (problemas frecuentes) o pedir apoyo a
+soporte tecnico.
+
+------------------------------------------------------------------------------
+ 4. PANTALLA PRINCIPAL
+------------------------------------------------------------------------------
+
+La barra lateral izquierda permite elegir el origen del documento:
+
+  - Corpus v2: 50 documentos base (25 autenticos y 25 manipulados). Es el
+    corpus con el que se entrenaron F4, F5 y F7.
+  - Corpus v1: 20 muestras, una por ataque T1-T8. Sirve para demostrar cada
+    tipo de fraude.
+  - Subir archivo: permite cargar una imagen propia.
+
+Tambien hay un interruptor para cruzar el documento con el registro sintetico
+del CETPRO. Si se desactiva, el sistema no compara nombre/DNI contra el
+registro.
+
+Las pestanas principales son:
+
+  1. Analisis integral: pipeline completo F3+F4+F5+F6+F7.
+  2. Analisis F3: calidad, forense, OCR, reglas y registro por separado.
+  3. F4 experimental: clasificador visual de pagina y Grad-CAM.
+  4. Historial: analisis guardados en SQLite y revision humana.
+  5. Fases del proyecto: estado real de F0-F9.
+
+------------------------------------------------------------------------------
+ 5. PASO A PASO: ANALIZAR UN DOCUMENTO
+------------------------------------------------------------------------------
+
+  1. En la barra lateral, elige "Corpus v2", "Corpus v1" o "Subir archivo".
+  2. Si subes un archivo, selecciona una imagen PNG/JPG.
+  3. Ve a la pestana "Analisis integral".
+  4. Espera unos segundos. El sistema ejecuta:
+       calidad -> forense -> OCR -> extraccion -> reglas -> registro
+       -> semantica F6 -> F4 -> F5 -> fusion F7 -> explicacion.
+  5. Lee el resultado de arriba hacia abajo:
+       - banda de riesgo y score;
+       - tipo de documento y captura;
+       - evidencias ordenadas por contribucion;
+       - mapa F5;
+       - explicacion;
+       - detalle en las subpestanas Campos, Senales, Reglas y JSON.
+  6. Descarga el informe con los botones "Descargar PDF" o "Descargar JSON".
+  7. El analisis queda guardado automaticamente en el historial SQLite.
+
+Tiempo aproximado: 3 a 5 segundos por documento en CPU. El primer analisis
+puede tardar mas porque carga los modelos.
+
+------------------------------------------------------------------------------
+ 6. COMO LEER EL RESULTADO
+------------------------------------------------------------------------------
+
+BANDA DE RIESGO
+  - Bajo (verde): las senales no se acumularon; no certifica autenticidad.
+  - Medio (ambar): hay senales parciales; revisar el detalle.
+  - Alto (rojo): priorizar revision humana. No es una condena ni un rechazo.
+  - Sin determinar (gris): la calidad no permite analizar; recapturar.
+
+SCORE F7
+  Es un score experimental entre 0 y 1. La calibracion elegida se muestra al
+  lado (en este prototipo: "identity"). No es una probabilidad institucional
+  de fraude.
+
+EVIDENCIAS
+  Cada evidencia tiene severidad (alta, media, baja) y un mensaje. Las
+  evidencias se ordenan por contribucion al riesgo (SHAP). Si no hay
+  evidencias suficientes, se muestra un aviso; eso no certifica autenticidad.
+
+MAPA F5
+  Es una ayuda cualitativa: muestra las zonas con mayor probabilidad de
+  manipulacion. F5 funciona mejor en cambios grandes (foto, pagina completa)
+  y falla en ediciones pequenas de texto (T1-T4). No es una prueba pericial.
+
+EXPLICACION
+  Se genera con una plantilla local a partir de las evidencias. Si Ollama esta
+  disponible, se puede pedir una redaccion con LLM; si falla, se usa la
+  plantilla. El LLM nunca decide.
+
+CAMPOS
+  Son los campos que el OCR pudo extraer. Si un campo falta, aparece como
+  faltante; no significa que el documento sea falso.
+
+------------------------------------------------------------------------------
+ 7. HISTORIAL Y REVISION HUMANA
+------------------------------------------------------------------------------
+
+La pestana "Historial" muestra los analisis guardados en SQLite.
+
+  - La tabla resume: id, fecha, documento, tipo, score, riesgo y fuente de la
+    explicacion.
+  - Al seleccionar un analisis se ve el detalle y se puede registrar una
+    revision humana:
+       requiere_revision / confirmado_manualmente / descartado
+  - Las notas de la revision quedan guardadas en la tabla feedback.
+
+Esto demuestra el principio del proyecto: el sistema no decide solo; una
+persona revisa y deja constancia.
+
+Ubicacion de la base de datos:
+  artifacts/history.db
+
+Tablas:
+  documents  (documento y hash)
+  analyses   (resultado, score, banda y payload JSON)
+  feedback   (revision humana)
+
+------------------------------------------------------------------------------
+ 8. EXPORTAR
+------------------------------------------------------------------------------
+
+En "Analisis integral" hay dos botones:
+
+  - Descargar PDF: informe de 1-3 paginas con banda, evidencias, explicacion,
+    mapa F5 y campos.
+  - Descargar JSON: resultado completo serializado, util para auditoria o
+    para el informe del curso.
+
+El PDF se guarda tambien en artifacts/reports/ y el JSON se puede volver a
+cargar para revisar el detalle.
+
+------------------------------------------------------------------------------
+ 9. LIMITES QUE DEBES CONOCER
+------------------------------------------------------------------------------
+
+  1. Todo el corpus es sintetico; no hay documentos reales del CETPRO.
+  2. El corpus base tiene 50 documentos y 10 personas; los intervalos son
+     anchos.
+  3. F5 no localiza bien T1-T4 (ediciones pequenas de texto).
+  4. T7 del corpus es una copia exacta; no mide reutilizacion real.
+  5. La calibracion elegida es identidad porque con n=50 las alternativas
+     empeoran el ECE.
+  6. No hay validacion con RENIEC/MINEDU ni despliegue institucional.
+  7. No hay decision automatica: la salida es apoyo a revision humana.
+  8. F8 (robustez, kappa) sigue parcial; F0 no se verifico en las 3 PCs.
+
+------------------------------------------------------------------------------
+ 10. PROBLEMAS FRECUENTES
+------------------------------------------------------------------------------
+
+"No se encuentra data/synthetic/v2"
+  Generar el corpus:
+    make synth-v2
+    make validate-v2
+    make folds-v2
+
+"F5 no disponible"
+  Falta artifacts/models/f5/fold_0.pt. Entrenar F5:
+    make train-f5 ARGS="--epochs 12 --device cpu --image-size 128"
+    make eval-f5
+
+"F7 no disponible"
+  Falta artifacts/models/f7/fusion.joblib. Entrenar F7:
+    make features-f7
+    make train-f7
+
+"El PDF tarda o falla"
+  Revisar que exista artifacts/reports/ y espacio en disco. El PDF se genera
+  una vez por analisis.
+
+"No aparece el historial"
+  La base se crea al primer analisis. Revisar artifacts/history.db.
+
+"La imagen no se puede leer"
+  Verificar formato (PNG/JPG/TIF/BMP/WEBP), que no este corrupta y que tenga
+  resolucion suficiente.
+
+"La demo no abre en localhost:8501"
+  Verificar que el puerto este libre y que Streamlit siga corriendo en la
+  terminal. En Docker: make up && make demo.
+
+------------------------------------------------------------------------------
+ 11. GLOSARIO
+------------------------------------------------------------------------------
+
+  CETPRO       Centro de Educacion Tecnico-Productiva.
+  DNI          Documento Nacional de Identidad (lo emite RENIEC).
+  OCR          Reconocimiento optico de caracteres.
+  ELA          Error Level Analysis; solo tiene sentido en JPEG.
+  F3           Linea base: calidad + forense + OCR + reglas + registro.
+  F4           Clasificador visual de pagina (EfficientNet-B0).
+  F5           Localizacion de manipulaciones (U-Net).
+  F6           Rama semantica: entidades, duplicados y explicacion.
+  F7           Fusion calibrada (LightGBM + calibracion).
+  SHAP         Tecnica para explicar la contribucion de cada senal.
+  SQLite       Base de datos local en un archivo.
+  T1-T8        Taxonomia de fraude del proyecto.
+  PII          Datos personales identificables.
+
+------------------------------------------------------------------------------
+ 12. CONTACTO Y DOCUMENTACION
+------------------------------------------------------------------------------
+
+Documentacion completa:
+  README.md
+  docs/manual_demo.md
+  docs/diagramas.md
+  docs/cap4_resultados.md
+  docs/verificacion_final.md
+
+Diagramas:
+  docs/figuras/casos_uso.png
+  docs/figuras/casos_uso_tabla.png
+  docs/figuras/modulos.png
+  docs/figuras/clases.png
+  docs/figuras/secuencia_analisis.png
+  docs/figuras/estados_riesgo.png
+  docs/figuras/despliegue.png
+  docs/figuras/base_datos_fisica.png
+  docs/figuras/base_datos_datos.png
+  docs/figuras/casos_prueba.png
+
+Principio final:
+  El sistema no reemplaza al evaluador. Ordena evidencias para que una
+  persona decida con trazabilidad.
+
+==============================================================================
+ Fin del manual
+==============================================================================

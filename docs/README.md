@@ -2,8 +2,10 @@
 
 - [`../plan-sistema-fraude-documental.md`](../plan-sistema-fraude-documental.md) (raíz): fuente de verdad del proyecto.
 - [`../AGENTS.md`](../AGENTS.md) (raíz): contexto y reglas para agentes de IA.
+- [`../MANUAL_USUARIO.txt`](../MANUAL_USUARIO.txt): manual de usuario paso a paso, en texto plano.
 - [`manual_demo.md`](manual_demo.md): arranque, guion de sustentación, cifras y solución de problemas.
-- [`diagramas.md`](diagramas.md): casos de uso, arquitectura, ER SQLite y flujo del pipeline.
+- [`modulos.md`](modulos.md): detalle módulo por módulo y pruebas.
+- [`diagramas.md`](diagramas.md): casos de uso, módulos, clases, secuencia, estados, despliegue, base de datos SQLite y flujo.
 - [`cap4_resultados.md`](cap4_resultados.md): tabla maestra y figuras del Cap. IV.
 - [`verificacion_final.md`](verificacion_final.md): checklist de cierre, comandos y evidencia de tests/demo.
 - [`guia_anotacion.md`](guia_anotacion.md): taxonomía T1–T8 y criterios de etiquetado (F1).

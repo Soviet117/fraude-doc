@@ -33,7 +33,9 @@ de cierre.
 | `artifacts/models/f7/seeds/seed_sweep.json` | barrido de 5 semillas |
 | `artifacts/history.db` | historial SQLite (documentos, análisis, feedback) |
 | `docs/informe_ejemplo.pdf` | informe PDF de ejemplo |
-| `docs/figuras/*.png` | casos de uso, arquitectura, ER, flujo y resultados |
+| `docs/figuras/*.png` | casos de uso, módulos, clases, secuencia, estados, despliegue, base de datos, flujo y resultados |
+| `MANUAL_USUARIO.txt` | manual de usuario paso a paso |
+| `docs/modulos.md` | detalle módulo por módulo |
 
 Los datos (`data/`) y artefactos (`artifacts/`) están ignorados por git; en un
 clon limpio se regeneran con los comandos del README. Las figuras de

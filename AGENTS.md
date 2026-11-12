@@ -52,7 +52,7 @@ Si hay conflicto entre una instrucción suelta y el plan, **gana el plan**, salv
 - `src/fraude/pipeline/full.py`: pipeline integral F3+F4+F5+F6+F7, mapa F5, explicación y metadatos.
 - `src/fraude/store/history.py` (SQLite: documentos, análisis y feedback) y `src/fraude/report/pdf.py` (informe PDF).
 - `apps/demo/app.py` (Streamlit) con pestañas de análisis integral, F3, F4, historial y fases.
-- `docs/` con el plan, guía de anotación, línea base F3, auditoría/OCR de muestras, F4/F5/F6/F7, model cards F4/F7, `cap4_resultados.md`, `diagramas.md`, `manual_demo.md` y `presentacion.md`.
+- `docs/` con el plan, guía de anotación, línea base F3, auditoría/OCR de muestras, F4/F5/F6/F7, model cards F4/F7, `cap4_resultados.md`, `modulos.md`, `diagramas.md`, `verificacion_final.md`, `manual_demo.md`, `presentacion.md` y `MANUAL_USUARIO.txt` en la raíz.
 - `scripts/diagrams.py` y figuras en `docs/figuras/`.
 
 La imagen Docker incluye el grupo `dev`, por lo que `make test` y `make lint` funcionan dentro del contenedor. **Pendiente de F0:** verificar la misma imagen en la laptop del compañero y en el laboratorio (SSH + `nvidia-smi`).

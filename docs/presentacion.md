@@ -78,6 +78,11 @@ make diagrams       # casos de uso, arquitectura, ER y flujo
 Salidas en `artifacts/models/f4/figures`, `artifacts/models/f5/figures`,
 `artifacts/models/f7/figures` y `docs/figuras`.
 
+Diagramas listos para diapositivas: `casos_uso.png`, `casos_uso_tabla.png`,
+`modulos.png`, `clases.png`, `secuencia_analisis.png`, `estados_riesgo.png`,
+`despliegue.png`, `base_datos_fisica.png`, `base_datos_datos.png`,
+`er_historial.png`, `flujo_pipeline.png` y `casos_prueba.png`.
+
 ## 4. Cifras que se pueden citar
 
 ### F3 — línea base (`stripped`, 20 muestras)

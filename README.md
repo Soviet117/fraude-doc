@@ -20,7 +20,9 @@ Prototipo de investigación aplicada que analiza documentos académicos (DNI, ce
 |---|---|
 | [`plan-sistema-fraude-documental.md`](plan-sistema-fraude-documental.md) | Plan completo: stack, arquitectura, pipeline, fases, backlog, evaluación y riesgos |
 | [`AGENTS.md`](AGENTS.md) | Contexto y reglas para agentes de IA que trabajen en el repo |
+| [`MANUAL_USUARIO.txt`](MANUAL_USUARIO.txt) | Manual de usuario paso a paso, en texto plano |
 | [`docs/manual_demo.md`](docs/manual_demo.md) | Arranque, guion de sustentación, cifras y solución de problemas |
+| [`docs/modulos.md`](docs/modulos.md) | Detalle módulo por módulo y qué prueba cada uno |
 | [`docs/diagramas.md`](docs/diagramas.md) | Casos de uso, arquitectura, ER SQLite y flujo del pipeline |
 | [`docs/cap4_resultados.md`](docs/cap4_resultados.md) | Tabla maestra y figuras para el Cap. IV |
 | [`docs/verificacion_final.md`](docs/verificacion_final.md) | Checklist de cierre, comandos y evidencia de la verificación |
@@ -35,6 +37,27 @@ Prototipo de investigación aplicada que analiza documentos académicos (DNI, ce
 | [`docs/auditoria_muestras.md`](docs/auditoria_muestras.md) | Integridad y límites del corpus v1 |
 | [`docs/ocr_muestras.md`](docs/ocr_muestras.md) | Medición de OCR real con docTR |
 | [`docs/muestras_pipeline.md`](docs/muestras_pipeline.md) | Evaluación end-to-end del corpus v1 |
+
+## Módulos y base de datos
+
+| Grupo | Paquetes | Qué hace |
+|---|---|---|
+| Contrato y datos | `core/`, `ingest/`, `preprocess/`, `synth/` | `Observation`, hashes, calidad y corpus sintético |
+| Señales | `forensics/`, `ocr/`, `extract/`, `rules/`, `registry/` | ELA/ruido, docTR, campos, reglas y registro |
+| Inteligencia | `nlp/`, `models/`, `fusion/` | F6 semántica, F4/F5 y F7 calibrado |
+| Salida | `eval/`, `report/`, `store/` | Métricas, PDF y SQLite |
+| Presentación | `apps/demo/`, `pipeline/` | Streamlit y orquestación integral |
+
+**Base de datos:** sí. Es SQLite, archivo `artifacts/history.db`, con tres
+tablas: `documents` (documento y hash), `analyses` (resultado, score, banda,
+payload JSON) y `feedback` (revisión humana). El esquema físico y los datos de
+ejemplo están en [docs/diagramas.md](docs/diagramas.md).
+
+**¿Puedo subir documentos?** Sí: imágenes PNG/JPG/TIF/BMP/WEBP desde la
+pestaña *Análisis integral*. El sistema devuelve banda, evidencias, mapa F5,
+explicación y PDF/JSON. No acepta PDF directamente (exportar la página a PNG).
+No detecta "todo" con la misma calidad: T5/T6 son fuertes, T1–T4 son el límite
+declarado y T7 del corpus es una copia exacta.
 
 ## Resumen técnico
 

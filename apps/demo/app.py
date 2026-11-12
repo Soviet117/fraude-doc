@@ -1458,7 +1458,12 @@ def _run_integral(
     payload["created_at"] = datetime.now(UTC).isoformat()
 
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    pdf_path = REPORTS_DIR / f"{payload['document_id'].removeprefix('sha256:')[:16]}.pdf"
+    fingerprint = hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()[:8]
+    pdf_path = (
+        REPORTS_DIR / f"{payload['document_id'].removeprefix('sha256:')[:16]}_{fingerprint}.pdf"
+    )
     try:
         build_report(payload, pdf_path)
     except Exception as exc:  # pragma: no cover - defensa para la demo

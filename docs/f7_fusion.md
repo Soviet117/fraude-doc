@@ -158,6 +158,6 @@ traducir a un mensaje comprensible, no se muestra.
    la localización fina sigue pendiente.
 5. **Calibración identidad.** Es una decisión defendible con n pequeño, pero no
    equivale a una calibración institucional.
-6. **Umbral max-F1 = 0.05.** Sube el recall a 0.96 sin cambiar el FPR en este
-   corpus; es un artefacto del tamaño muestral, no un umbral recomendable sin
+6. **Umbral max-F1 = 0.05.** Sube el recall a 0.96, pero el FPR pasa de 0.08 a
+   0.12; es un artefacto del tamaño muestral, no un umbral recomendable sin
    validación externa.

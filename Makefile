@@ -6,10 +6,10 @@ TODAY ?= 2026-11-05
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell gpu demo demo-local test lint fmt lock synth synth-smoke synth-v2 validate-v2 folds-v2 train-f4 eval-f4 figures-f4 gradcam-f4 train-f5 eval-f5 figures-f5 pipeline-v2 eval-f6 features-f7 train-f7 figures-f7 diagrams audit-samples ocr-samples eval-samples build clean
+.PHONY: help setup up down shell gpu demo demo-local test lint fmt lock synth synth-smoke synth-v2 validate-v2 folds-v2 train-f4 eval-f4 figures-f4 gradcam-f4 train-f5 eval-f5 figures-f5 pipeline-v2 eval-f6 features-f7 train-f7 figures-f7 diagrams eval eval-system audit-samples ocr-samples eval-samples build clean
 
 help: ## Muestra los comandos disponibles
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Crea .env con el UID/GID del usuario actual
@@ -76,6 +76,14 @@ eval-f4: ## Evalúa las predicciones out-of-fold y genera la tabla
 	uv run python -m fraude.models.evaluate --oof artifacts/models/f4/oof.jsonl \
 		--out artifacts/models/f4/eval.json --markdown artifacts/models/f4/eval.md
 
+eval: ## Reproduce tablas y figuras OOF de F4-F7 (requiere artefactos de entrenamiento)
+	$(MAKE) eval-f4 eval-f5 eval-f6
+	$(MAKE) features-f7 train-f7 seeds-f7
+	$(MAKE) figures-f4 figures-f5 figures-f7
+
+eval-system: ## Sanity check in-sample del pipeline integral sobre los 50 documentos v2
+	MPLCONFIGDIR=.cache/mpl uv run python scripts/eval_full_v2.py
+
 figures-f4: ## Genera curvas, matriz de confusión, recall por ataque y calibración
 	uv run python -m fraude.models.report --metrics artifacts/models/f4/metrics.json \
 		--eval artifacts/models/f4/eval.json --out artifacts/models/f4/figures
@@ -110,6 +118,10 @@ features-f7: ## Construye la tabla de características de F7 desde F3-F6
 
 train-f7: ## Entrena y evalúa la fusión calibrada F7
 	uv run python -m fraude.fusion.train
+
+seeds-f7: ## Barrido de semillas de F7 (F8 parcial)
+	uv run python -m fraude.fusion.seed_sweep --seeds 1,7,21,42,123 \
+		--out artifacts/models/f7/seeds
 
 figures-f7: ## Genera ROC/PR, confusión, calibración, umbrales, ablaciones y SHAP
 	MPLCONFIGDIR=.cache/mpl uv run python -m fraude.fusion.report \

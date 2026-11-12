@@ -134,12 +134,14 @@ Sobre los **50 documentos base**, el pipeline integral con F7 asignó:
 | Etiqueta | Riesgo bajo | Riesgo medio | Riesgo alto |
 |---|---:|---:|---:|
 | Auténticos (25) | 25 | 0 | 0 |
-| Manipulados (25) | 0 | 2 | 23 |
+| Manipulados (25) | 0 | 1 | 24 |
 
-Es un chequeo **in-sample**: el modelo final de F7 se entrenó con esas filas y
-los checkpoints de F4/F5 son los de demo. Sirve para verificar que el cableado
-funciona y que la demo no produce falsos positivos en el corpus, **no** como
-métrica de generalización. El resultado OOF de la sección 6 es el que se cita.
+El único manipulado en riesgo medio es `partida_nacimiento_0002_t1_c2`
+(T1, p = 0.340), cerca del umbral de 0.33. Es un chequeo **in-sample**: el
+modelo final de F7 se entrenó con esas filas y los checkpoints de F4/F5 son los
+de demo. Sirve para verificar que el cableado funciona y que la demo no produce
+falsos positivos en el corpus, **no** como métrica de generalización. El
+resultado OOF de la sección 6 es el que se cita.
 
 ### 6.2 Barrido de semillas (F8 parcial)
 
@@ -159,7 +161,7 @@ No sustituye la evaluación de robustez ni el kappa de F8.
 
 | Métrica | Valor (CPU, 16 núcleos) |
 |---|---:|
-| Latencia total p50 | ≈ 3.4 s |
+| Latencia total p50 | ≈ 3.3 s (media 3.8 s; primer análisis ≈ 21 s) |
 | OCR | ≈ 2.0–3.1 s |
 | Forense | ≈ 0.4 s |
 | F4 + F5 | ≈ 0.1 s |

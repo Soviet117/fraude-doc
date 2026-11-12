@@ -69,6 +69,9 @@ make pipeline-v2 && make eval-f6 && make features-f7 && make train-f7
 make figures-f4     # curvas, matriz, recall por ataque, calibración
 make figures-f5     # Pixel-F1 por ataque, barrido, ejemplos
 make figures-f7     # ROC/PR, confusión, calibración, ablaciones, SHAP
+make seeds-f7       # barrido de semillas de F7
+make eval           # reproduce las tablas y figuras OOF
+make eval-system    # sanity check del pipeline integral
 make diagrams       # casos de uso, arquitectura, ER y flujo
 ```
 
@@ -195,8 +198,8 @@ legal.
 - [ ] Existen `artifacts/models/f4/fold_2.pt`, `artifacts/models/f5/fold_0.pt` y
       `artifacts/models/f7/fusion.joblib`.
 - [ ] `artifacts/models/f7/metrics.json` y `eval.md` existen.
-- [ ] `make figures-f4`, `make figures-f5`, `make figures-f7` y `make diagrams`
-      generaron las figuras.
+- [ ] `make eval` reprodujo las tablas OOF y `make figures-f4`,
+      `make figures-f5`, `make figures-f7` y `make diagrams` generaron las figuras.
 - [ ] Las imágenes de demo son sintéticas y no contienen PII.
 - [ ] Capturas de respaldo de la demo y de `eval.md` por si falla el directo.
 - [ ] Cerrar otras aplicaciones que consuman CPU/GPU antes de la demo.

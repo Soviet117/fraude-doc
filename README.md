@@ -80,6 +80,9 @@ make eval-f6         # extracción, duplicados y explicaciones
 make features-f7     # tabla de 62 características para F7
 make train-f7        # fusión + calibración + ablaciones
 make figures-f7      # ROC/PR, confusión, calibración, umbrales, SHAP
+make seeds-f7        # barrido de 5 semillas (F8 parcial)
+make eval            # reproduce tablas y figuras OOF de F4-F7
+make eval-system     # sanity check del pipeline integral sobre los 50 docs v2
 make train-f4 ARGS="--epochs 12 --device cpu"
 make eval-f4
 make figures-f4

@@ -92,7 +92,7 @@ ejemplos cualitativos). El detalle completo está en
 
 ## 5. Uso en la demo
 
-La pestaña **Análisis integral** muestra el mapa F5 superpuesto y el resumen
+La vista **Análisis** muestra el mapa F5 superpuesto y el resumen
 `max_prob`, `mean_prob` y `area_fraction`. La fusión F7 solo recibe estos
 resúmenes, no la máscara completa. El PDF incluye el mapa con la advertencia de
 que es experimental.

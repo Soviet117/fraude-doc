@@ -53,9 +53,9 @@ tablas: `documents` (documento y hash), `analyses` (resultado, score, banda,
 payload JSON) y `feedback` (revisión humana). El esquema físico y los datos de
 ejemplo están en [docs/diagramas.md](docs/diagramas.md).
 
-**¿Puedo subir documentos?** Sí: imágenes PNG/JPG/TIF/BMP/WEBP desde la
-pestaña *Análisis integral*. El sistema devuelve banda, evidencias, mapa F5,
-explicación y PDF/JSON. No acepta PDF directamente (exportar la página a PNG).
+**¿Puedo subir documentos?** Sí: imágenes PNG/JPG/TIF/BMP/WEBP desde la vista
+*Análisis*. El sistema devuelve banda, evidencias, mapa F5, explicación y
+PDF/JSON. No acepta PDF directamente (exportar la página a PNG).
 No detecta "todo" con la misma calidad: T5/T6 son fuertes, T1–T4 son el límite
 declarado y T7 del corpus es una copia exacta.
 
@@ -64,7 +64,7 @@ declarado y T7 del corpus es una copia exacta.
 - **Datos:** corpus sintético v2 (`data/synthetic/v2`, 50 documentos base, 25/25, 10 personas, 7 tipos, 300 imágenes) y corpus v1 (`data/muestras`, 20 muestras). DocTamper queda como trabajo futuro.
 - **Pipeline:** calidad → tipo de captura → forense (ELA, ruido, cromática, metadatos, copy-move) → OCR docTR → extracción → reglas → registro → F6 semántica → F4/F5 → F7 (LightGBM + calibración) → explicación → SQLite/PDF.
 - **Stack:** Python 3.13, PyTorch 2.14, docTR, spaCy, LightGBM, Streamlit, SQLite, reportlab, Docker.
-- **Demo:** pestañas de análisis integral, F3, F4, historial y fases; subida de archivo o selección del corpus; descarga PDF/JSON; revisión humana en SQLite.
+- **Demo:** navegación lateral (Análisis, Historial, Ayuda), tema claro/oscuro, tooltips contextuales, subida de archivo o selección del corpus, descarga PDF/JSON y revisión humana en SQLite.
 - **Infraestructura:** una imagen Docker idéntica en 3 PCs; el laboratorio (Ubuntu + GPU) se usa por SSH solo para entrenamiento.
 
 ## Principios

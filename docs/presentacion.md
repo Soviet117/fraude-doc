@@ -21,10 +21,10 @@ para priorizar revisión humana**, nunca una decisión automática.
 | F5 | Cerrada experimental | U-Net 128 px; T5/T6, limitado en T1–T4 |
 | F6 | Cerrada experimental | Semántica, duplicados, explicación con fallback |
 | F7 | Cerrada experimental | LightGBM + calibración; F1 0.898 OOF |
-| F8 | Parcial | OOF, IC y ablaciones; faltan semillas, robustez y kappa |
+| F8 | Parcial | OOF, IC, ablaciones y 5 semillas; faltan robustez y kappa |
 | F9 | En curso | Demo integral, SQLite, PDF, diagramas y documentación |
 
-La demo es la fuente de verdad del estado; la pestaña **Fases** lo muestra.
+La demo es la fuente de verdad del estado; **Ayuda → Estado** lo muestra.
 
 ## 3. Demo en 6 minutos
 
@@ -46,10 +46,12 @@ make pipeline-v2 && make eval-f6 && make features-f7 && make train-f7
 
 ### Guion
 
-1. **Abrir la demo** y mostrar la barra lateral: corpus v2, corpus v1 o subida.
-   Explicar que el v2 entrena F4/F5/F7 y el v1 conserva un ataque de cada tipo.
-2. **Auténtico (`dni_0000`)**: pestaña *Análisis integral*. Mostrar banda baja,
-   score, evidencias y mapa F5. Aclarar que el mapa es cualitativo.
+1. **Abrir la demo** y mostrar la barra lateral: navegación, las tres opciones
+   de origen y el modo oscuro. Explicar que el v2 entrena F4/F5/F7 y el v1
+   conserva un ataque de cada tipo.
+2. **Auténtico (`dni_0000`)**: vista *Análisis*. Mostrar banda baja, score,
+   evidencias y mapa F5. Aclarar que el mapa es cualitativo y que los iconos
+   `?` explican los términos.
 3. **T7 (`dni_0007_t7_c1`)**: evidencia de reutilización y score alto. Decir que
    T7 es una copia exacta en el corpus; no mide reutilización real.
 4. **T1 (`dni_0000_t1`)**: F4/F5 no ven la edición pequeña, pero la regla de
@@ -58,10 +60,10 @@ make pipeline-v2 && make eval-f6 && make features-f7 && make train-f7
    página. Mostrar que el tipo detectado puede fallar y que la fusión compensa.
 6. **Descargar PDF/JSON** y mostrar evidencias, campos, explicación y límites.
 7. **Historial**: análisis guardado en SQLite; registrar una revisión humana.
-8. **Fases**: cerrar con F0–F7 cerradas, F8 parcial y F9 en curso.
+8. **Ayuda → Estado**: cerrar con F0–F7 cerradas, F8 parcial y F9 en curso.
 
-> Para F4, subir `data/synthetic/v2/images/dni_0007_t5.png` o
-> `certificado_modulo_0005_t6.png`; para T1, `dni_0000_t1.png`.
+> Para probar T5/T6, elegir `dni_0007_t5` o `certificado_modulo_0005_t6` en el
+> corpus v2; para T1, `dni_0000_t1`.
 
 ### Figuras para diapositivas
 

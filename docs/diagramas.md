@@ -26,7 +26,7 @@ prueba se calcula con `pytest --collect-only`.
 | [`base_datos_datos.png`](figuras/base_datos_datos.png) | Filas reales de `artifacts/history.db` |
 | [`er_historial.png`](figuras/er_historial.png) | Modelo entidad-relación |
 | [`flujo_pipeline.png`](figuras/flujo_pipeline.png) | Flujo F3→F7 |
-| [`casos_prueba.png`](figuras/casos_prueba.png) | Matriz de 254 casos de prueba |
+| [`casos_prueba.png`](figuras/casos_prueba.png) | Matriz de 256 casos de prueba |
 
 ## 1. Casos de uso
 
@@ -193,6 +193,6 @@ sistema muestra las señales base y lo declara.
 
 ![Casos de prueba](figuras/casos_prueba.png)
 
-**254 casos** recogidos por pytest, sin GPU. La matriz se genera leyendo
+**256 casos** recogidos por pytest, sin GPU. La matriz se genera leyendo
 `pytest --collect-only`; los archivos siguen el nombre del módulo. El detalle
 de módulos y pruebas está en [`modulos.md`](modulos.md).

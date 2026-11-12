@@ -88,11 +88,11 @@ Los mapas y máscaras se guardan por ruta, no se embeben en el JSON.
 - **eval/v2_pipeline.py**: ejecuta F3 sobre los 50 documentos base.
 - **report/pdf.py**: informe con banda, evidencias, campos, explicación y mapa.
 - **store/history.py**: SQLite con `documents`, `analyses` y `feedback`.
-- **apps/demo/app.py**: pestañas de análisis integral, F3, F4, historial y fases.
+- **apps/demo/app.py**: interfaz de producto con navegación Análisis/Historial/Ayuda, tema claro/oscuro, tooltips y exportación PDF/JSON.
 
 ## 4. Pruebas
 
-`tests/` contiene 254 casos recogidos por pytest. Los archivos siguen el nombre
+`tests/` contiene 256 casos recogidos por pytest. Los archivos siguen el nombre
 del módulo: `test_schemas.py`, `test_forensics.py`, `test_fusion.py`,
 `test_history.py`, `test_report.py`, etc. La matriz visual está en
 `docs/figuras/casos_prueba.png`.

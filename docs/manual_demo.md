@@ -39,21 +39,26 @@ make train-f7
 La demo funciona igual si falta F4/F5/F7: muestra las señales disponibles y lo
 declara. Si falta el corpus v2, se puede usar el corpus v1 o subir una imagen.
 
-## 2. Pestañas
+## 2. Navegación
 
-| Pestaña | Qué muestra |
+La barra lateral tiene **Navegación**, **Documento** y **Apariencia**:
+
+| Vista | Qué muestra |
 |---|---|
-| **Análisis integral** | F3 + F4 + F5 + F6 + F7: banda, score, evidencias SHAP, mapa F5, explicación, PDF/JSON |
-| **Análisis F3** | Calidad, forense, OCR, campos, reglas y registro por separado |
-| **F4 experimental** | Score de página y Grad-CAM |
+| **Análisis** | F3 + F4 + F5 + F6 + F7: banda, score, evidencias SHAP, mapa F5, explicación, PDF/JSON |
 | **Historial** | Análisis guardados en SQLite y revisión humana |
-| **Fases del proyecto** | Estado real F0–F9 |
+| **Ayuda** | Cómo leer, glosario, límites y estado F0–F9 |
+
+En **Documento** están las tres opciones: **Corpus v2**, **Corpus v1** y
+**Subir archivo**. En **Apariencia** está el interruptor **Modo oscuro**.
+Cada término técnico tiene un icono `?` con explicación al pasar el cursor.
 
 ## 3. Guion de 5–7 minutos
 
-1. **Abrir la demo** y mostrar la barra lateral. Explicar que hay dos corpus
-   sintéticos y que el v2 es el que entrena F4/F5/F7.
-2. **Análisis integral con un auténtico:** elegir `dni_0000` (v2). Mostrar banda
+1. **Abrir la demo** y mostrar la barra lateral: navegación, las tres opciones
+   de origen y el modo oscuro. Explicar que el corpus v2 es el que entrena
+   F4/F5/F7 y que el v1 conserva un ataque de cada tipo.
+2. **Análisis con un auténtico:** elegir `dni_0000` (v2). Mostrar banda
    baja, score, evidencias protectoras y mapa F5. Aclarar que un mapa con
    probabilidad alta en una zona no implica fraude: F5 es experimental.
 3. **T7:** elegir `dni_0007_t7_c1`. Mostrar la evidencia de reutilización y el
@@ -70,9 +75,9 @@ declara. Si falta el corpus v2, se puede usar el corpus v1 o subir una imagen.
 7. **Historial:** mostrar el análisis guardado y registrar una revisión humana.
    Esto demuestra la trazabilidad y el principio de “ninguna decisión
    automática”.
-8. **Fases:** cerrar con F0–F7 cerradas en local, F8 parcial y F9 en curso.
-   Mencionar que no hay documentos reales y que la validación institucional es
-   trabajo futuro.
+8. **Ayuda → Estado:** cerrar con F0–F7 cerradas en local, F8 parcial y F9 en
+   curso. Mencionar que no hay documentos reales y que la validación
+   institucional es trabajo futuro.
 
 ## 4. Cifras que se pueden citar
 

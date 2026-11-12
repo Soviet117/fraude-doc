@@ -75,3 +75,20 @@ def test_acta_rows_are_sorted_and_complete() -> None:
         (1, "SÁNCHEZ SALAZAR, ÉDGAR MARTÍN", "61531833", "18"),
         (2, "RUIZ VÁSQUEZ, GABRIELA RUTH", "79352308", "16"),
     ]
+
+
+def test_theme_css_switches_tokens() -> None:
+    light = demo._theme_css(False)
+    dark = demo._theme_css(True)
+
+    assert "--bg:#F3F6FA" in light
+    assert "--bg:#07101D" in dark
+    assert "color-scheme:dark" in dark
+
+
+def test_tip_escapes_html_and_exposes_text() -> None:
+    markup = demo._tip('Riesgo <alto> & "revisar"')
+
+    assert "data-tip=" in markup
+    assert "&lt;alto&gt;" in markup
+    assert "&amp;" in markup

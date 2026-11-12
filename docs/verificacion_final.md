@@ -13,7 +13,7 @@ de cierre.
 
 | Verificación | Comando | Resultado |
 |---|---|---|
-| Tests | `uv run pytest -q` | **254 tests en verde** |
+| Tests | `uv run pytest -q` | **256 tests en verde** |
 | Lint | `uv run ruff check .` | **All checks passed** |
 | Formato | `uv run ruff format --check .` | **135 archivos formateados** |
 | Tablas y figuras OOF | `make eval` | F4/F5/F6/F7 + seeds + figuras regeneradas |
@@ -66,11 +66,12 @@ make demo-local
 make up && make demo
 ```
 
-Pestañas: **Análisis integral** (F3+F4+F5+F6+F7), **Análisis F3**, **F4
-experimental**, **Historial** (SQLite + revisión humana) y **Fases**.
+Navegación lateral: **Análisis** (F3+F4+F5+F6+F7), **Historial** (SQLite +
+revisión humana) y **Ayuda** (cómo leer, glosario, límites y estado). La barra
+lateral conserva las tres opciones de origen y el modo claro/oscuro.
 
 El historial local quedó sembrado con dos ejemplos (un auténtico en riesgo bajo
-y un T7 en riesgo alto) para que la pestaña *Historial* no aparezca vacía en la
+y un T7 en riesgo alto) para que la vista *Historial* no aparezca vacía en la
 sustentación. Esos datos viven en `artifacts/`, no en git.
 
 ## 5. Límites declarados
